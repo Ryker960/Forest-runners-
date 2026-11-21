@@ -1,1 +1,128 @@
-
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Forest Runners</title>
+<script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+<script src="https://download.playfab.com/PlayFabClientApi.js"></script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#07150d;color:#efffea;font:16px system-ui,Arial;overflow:hidden}
+#hud{position:fixed;z-index:5;inset:12px 12px auto;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
+.panel{background:#10271ddd;border:1px solid #4b8056;border-radius:14px;padding:10px 13px;backdrop-filter:blur(8px);pointer-events:auto;max-width:min(92vw,360px)}
+#brand{font-weight:900;letter-spacing:2px;color:#b9ff9d}#status{font-size:12px;color:#c8dfc8}
+#actions{position:fixed;z-index:6;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:96%;pointer-events:auto}
+button{border:1px solid #72a66e;background:#1b4729;color:white;border-radius:12px;padding:11px 14px;font-weight:700;font-size:14px}
+button:active{transform:scale(.97)}button:disabled{opacity:.35}
+#modal{display:none;position:fixed;z-index:10;inset:0;background:#000b;align-items:center;justify-content:center;padding:18px}
+#modal .panel{width:min(100%,380px);max-width:380px}input{width:100%;padding:12px;border-radius:10px;border:1px solid #69966b;background:#07150d;color:white;margin:8px 0}
+#badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.badge{font-size:11px;border:1px solid #82b57d;border-radius:99px;padding:4px 8px;color:#d7ffd0}
+#help{position:fixed;z-index:5;bottom:78px;left:12px;max-width:260px;font-size:12px;color:#e2f5df}
+a-scene{position:fixed;inset:0}
+</style>
+</head>
+<body>
+<div id="hud">
+ <div class="panel"><div id="brand">🌲 FOREST RUNNERS</div><div id="status">Connecting…</div><div id="badges"></div></div>
+ <div class="panel"><button id="menuBtn">MENU</button></div>
+</div>
+<div id="help" class="panel">Explore the forest. Find the metal vent hatch to request moderator access. VR: tap Enter VR. Desktop/mobile: use the on-screen controls.</div>
+<div id="actions">
+ <button id="forward">▲ MOVE</button><button id="jump">JUMP</button><button id="ventBtn">MOD VENTS</button><button id="toolsBtn" hidden>MOD TOOLS</button>
+</div>
+<div id="modal"><div class="panel">
+ <h2 id="modalTitle">Forest Runners</h2><p id="modalText">Welcome to the forest!</p>
+ <div id="modalExtra"></div>
+ <div style="display:flex;gap:8px;margin-top:12px"><button id="primary">OK</button><button id="close">CLOSE</button></div>
+</div></div>
+<a-scene renderer="antialias:true; colorManagement:true" vr-mode-ui="enabled:true" background="color:#9ac7d0" fog="type:linear; color:#9ac7d0; near:18; far:90">
+ <a-assets>
+  <a-mixin id="trunk" geometry="primitive:cylinder; radius:0.42; height:5" material="color:#60402a"></a-mixin>
+  <a-mixin id="leaf" geometry="primitive:sphere; radius:2.1" material="color:#245f32"></a-mixin>
+ </a-assets>
+ <a-sky color="#9ac7d0"></a-sky>
+ <a-plane rotation="-90 0 0" width="180" height="180" color="#315b2d" material="roughness:1"></a-plane>
+ <a-light type="ambient" color="#d7ffd8" intensity="0.7"></a-light><a-light type="directional" position="-3 10 4" intensity="0.8"></a-light>
+ <a-entity id="forest"></a-entity>
+ <a-entity id="player" position="0 0 8">
+  <a-camera id="camera" position="0 1.6 0" wasd-controls="acceleration:22" look-controls>
+   <a-cursor color="#e6ffcc" raycaster="objects:.clickable"></a-cursor>
+  </a-camera>
+  <a-entity laser-controls="hand:left"></a-entity><a-entity laser-controls="hand:right"></a-entity>
+ </a-entity>
+ <a-entity id="vent" position="0 0.08 -8">
+  <a-box width="2.3" height=".18" depth="2.3" color="#4d5550" material="metalness:.7;roughness:.4"></a-box>
+  <a-box position="0 .14 0" width="1.65" height=".08" depth="1.65" color="#1b2520" class="clickable" id="ventHatch"></a-box>
+  <a-text value="MOD VENT" align="center" color="#ffffff" position="0 .25 0" width="4"></a-text>
+ </a-entity>
+ <a-entity id="modRoom" position="0 -30 0">
+  <a-box position="0 0 0" width="12" height=".3" depth="12" color="#263b32"></a-box>
+  <a-box position="0 2.5 -6" width="12" height="5" depth=".3" color="#344d3d"></a-box>
+  <a-text value="MODERATOR VENTS" align="center" position="0 3.5 -5.7" width="8" color="#baff9c"></a-text>
+ </a-entity>
+</a-scene>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ const modal=$('modal'); let currentRole='player', playerId=null, moving=false;
+ const badges={moderator:'🛡 Moderator',owner:'👑 Owner','beta_tester':'🧪 Beta Tester',content_creator:'🎥 Content Creator',met_owner:'⭐ I Met The Owner',trial_mod:'🔰 Trial Moderator'};
+ const config={titleId:'YOUR_PLAYFAB_TITLE_ID'};
+ function show(title,msg,extra=''){ $('modalTitle').textContent=title;$('modalText').textContent=msg;$('modalExtra').innerHTML=extra;modal.style.display='flex'; }
+ function hide(){modal.style.display='none'}
+ $('close').onclick=hide;$('primary').onclick=hide;
+ function renderRole(role){
+  currentRole=role||'player';$('badges').innerHTML='';
+  (role==='owner'?['owner','moderator']:role==='moderator'?['moderator']:role==='trial_mod'?['trial_mod']:role==='beta_tester'?['beta_tester']:role==='content_creator'?['content_creator']:role==='met_owner'?['met_owner']:[]).forEach(k=>{let s=document.createElement('span');s.className='badge';s.textContent=badges[k];$('badges').appendChild(s)});
+  $('toolsBtn').hidden=!['owner','moderator'].includes(currentRole);
+ }
+ function setStatus(s){$('status').textContent=s}
+ // PlayFab Client API: only the public Title ID belongs here. Never put a developer secret in browser code.
+ function connectPlayFab(){
+  if(!config.titleId||config.titleId==='YOUR_PLAYFAB_TITLE_ID'){setStatus('PlayFab not configured yet');return}
+  if(!window.PlayFabClientSDK){setStatus('PlayFab SDK unavailable');return}
+  PlayFab.settings.titleId=config.titleId;
+  PlayFabClientSDK.LoginWithCustomID({CustomId:'fr_'+(localStorage.frDeviceId||(localStorage.frDeviceId='device_'+Math.random().toString(36).slice(2))),CreateAccount:true},res=>{
+   playerId=res.data.PlayFabId;setStatus('PlayFab connected · '+playerId.slice(0,8));
+   // Roles must be returned by a server-side CloudScript function, never trusted from browser storage.
+   if(PlayFabClientSDK.ExecuteCloudScript){
+    PlayFabClientSDK.ExecuteCloudScript({FunctionName:'GetForestRunnersRole',FunctionParameter:{}},r=>{
+     const role=r.data&&r.data.FunctionResult&&r.data.FunctionResult.role;
+     renderRole(['owner','moderator','trial_mod','beta_tester','content_creator','met_owner'].includes(role)?role:'player');
+    },()=>renderRole('player'));
+   }
+  },()=>setStatus('PlayFab sign-in failed'));
+ }
+ function requireMod(){
+  if(!['owner','moderator'].includes(currentRole)){show('Access denied','Only verified moderators and the owner can enter the moderator vents. Trial moderators do not have access.');return false}
+  show('Verification','Checking your moderator access with PlayFab…');
+  if(!window.PlayFabClientSDK||!playerId){$('modalText').textContent='PlayFab is not connected. Set up the Title ID and CloudScript first.';return false}
+  PlayFabClientSDK.ExecuteCloudScript({FunctionName:'VerifyModeratorVentAccess',FunctionParameter:{}},r=>{
+   if(r.data&&r.data.FunctionResult&&r.data.FunctionResult.allowed){hide();document.querySelector('#player').setAttribute('position','0 -28 0');show('Welcome to the vents','Moderator access verified. Walk around the moderator room.')}
+   else show('Verification failed','Your account is not authorized for the moderator vents.');
+  },()=>show('Verification failed','PlayFab could not verify your role. Try again later.'));
+  return false;
+ }
+ $('ventBtn').onclick=requireMod;
+ $('ventHatch').addEventListener('click',requireMod);
+ $('toolsBtn').onclick=()=>{
+  if(!['owner','moderator'].includes(currentRole))return;
+  show('Moderator tools','Ban and kick actions must be checked by secure PlayFab CloudScript before they affect another player.',
+   '<p>🔨 Ban hammer · 🔨 Kick hammer</p><p>Trial moderators receive only their badge.</p><button id="banInfo">BAN HAMMER</button> <button id="kickInfo">KICK HAMMER</button>');
+  $('banInfo').onclick=()=>show('Ban hammer','This tool will only work after a server-side BanPlayer CloudScript function is configured.');
+  $('kickInfo').onclick=()=>show('Kick hammer','This tool will only work after a server-side KickPlayer CloudScript function is configured.');
+ };
+ $('menuBtn').onclick=()=>show('Forest Runners','Explore the forest, find the vent hatch, and earn your badges.','<p>VR: use the headset Enter VR button. On desktop use WASD and mouse.</p><p>Mobile: use the MOVE and JUMP buttons.</p>');
+ $('forward').addEventListener('pointerdown',()=>{moving=true});['pointerup','pointercancel','pointerleave'].forEach(e=>$('forward').addEventListener(e,()=>moving=false));
+ $('jump').onclick=()=>{const p=document.querySelector('#player');const y=p.object3D.position.y;p.object3D.position.y=y+.7;setTimeout(()=>p.object3D.position.y=y,350)};
+ function tick(){if(moving){const p=document.querySelector('#player');const d=new THREE.Vector3(0,0,-.12);d.applyQuaternion(p.object3D.quaternion);p.object3D.position.add(d)}requestAnimationFrame(tick)}tick();
+ // Generate a simple, lightweight forest.
+ const forest=$('forest');
+ for(let i=0;i<65;i++){const a=i*2.399,rad=5+(i%9)*2.7,x=Math.cos(a)*rad,z=Math.sin(a)*rad-7;
+  const tree=document.createElement('a-entity');tree.setAttribute('position',x+' 0 '+z);
+  const trunk=document.createElement('a-cylinder');trunk.setAttribute('radius','.32');trunk.setAttribute('height','4.2');trunk.setAttribute('position','0 2.1 0');trunk.setAttribute('color','#68452c');tree.appendChild(trunk);
+  const leaves=document.createElement('a-sphere');leaves.setAttribute('radius','2');leaves.setAttribute('position','0 4.7 0');leaves.setAttribute('color',i%3===0?'#397c3a':'#245e31');tree.appendChild(leaves);forest.appendChild(tree);
+ }
+ connectPlayFab();
+})();
+</script>
+</body></html>
