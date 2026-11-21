@@ -83,23 +83,34 @@ a-scene{position:fixed;inset:0}
   try {
    PlayFab.settings.titleId=config.titleId;
    const customId='fr_'+(localStorage.frDeviceId||(localStorage.frDeviceId='device_'+Math.random().toString(36).slice(2)));
-   let finished=false;
-   const timeout=setTimeout(()=>{if(!finished){finished=true;setStatus('PlayFab sign-in timed out — check internet and Title ID');}},15000);
-   PlayFabClientSDK.LoginWithCustomID({CustomId:customId,CreateAccount:true},res=>{
-    if(finished)return;finished=true;clearTimeout(timeout);
-    if(!res || !res.data || !res.data.PlayFabId){setStatus('PlayFab sign-in returned no player ID');return}
-    playerId=res.data.PlayFabId;setStatus('PlayFab connected · '+playerId.slice(0,8));
-    if(PlayFabClientSDK.ExecuteCloudScript){
-     PlayFabClientSDK.ExecuteCloudScript({FunctionName:'GetForestRunnersRole',FunctionParameter:{}},r=>{
-      const role=r.data&&r.data.FunctionResult&&r.data.FunctionResult.role;
-      renderRole(['owner','moderator','trial_mod','beta_tester','content_creator','met_owner'].includes(role)?role:'player');
-     },()=>renderRole('player'));
+   setStatus('Signing in to PlayFab…');
+   const timer=setTimeout(()=>setStatus('PlayFab did not respond — check your connection'),15000);
+   PlayFabClientSDK.LoginWithCustomID({
+    TitleId:config.titleId,
+    CustomId:customId,
+    CreateAccount:true
+   },(result,error)=>{
+    clearTimeout(timer);
+    if(error){
+     const msg=(error.errorMessage||error.error||'Unknown PlayFab error');
+     setStatus('PlayFab login error: '+msg.slice(0,90));
+     renderRole('player');
+     return;
     }
-   },err=>{
-    if(finished)return;finished=true;clearTimeout(timeout);
-    setStatus('PlayFab sign-in failed — check Title ID and PlayFab settings');
+    if(!result||!result.data||!result.data.PlayFabId){
+     setStatus('PlayFab returned an unexpected response');
+     renderRole('player');
+     return;
+    }
+    playerId=result.data.PlayFabId;
+    setStatus('PlayFab connected · '+playerId.slice(0,8));
+    PlayFabClientSDK.ExecuteCloudScript({FunctionName:'GetForestRunnersRole',FunctionParameter:{}},(scriptResult,scriptError)=>{
+     if(scriptError){renderRole('player');return;}
+     const role=scriptResult&&scriptResult.data&&scriptResult.data.FunctionResult&&scriptResult.data.FunctionResult.role;
+     renderRole(['owner','moderator','trial_mod','beta_tester','content_creator','met_owner'].includes(role)?role:'player');
+    });
    });
-  } catch(e){setStatus('PlayFab setup error — refresh and try again');}
+  } catch(e){setStatus('PlayFab setup error: '+String(e.message||e).slice(0,80));}
  }
  function requireMod(){
   if(!['owner','moderator'].includes(currentRole)){show('Access denied','Only verified moderators and the owner can enter the moderator vents. Trial moderators do not have access.');return false}
