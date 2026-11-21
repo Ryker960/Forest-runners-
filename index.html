@@ -66,7 +66,7 @@ a-scene{position:fixed;inset:0}
  const $=id=>document.getElementById(id);
  const modal=$('modal'); let currentRole='player', playerId=null, moving=false;
  const badges={moderator:'🛡 Moderator',owner:'👑 Owner','beta_tester':'🧪 Beta Tester',content_creator:'🎥 Content Creator',met_owner:'⭐ I Met The Owner',trial_mod:'🔰 Trial Moderator'};
- const config={titleId:'YOUR_PLAYFAB_TITLE_ID'}; // Replace with your public PlayFab Title ID.
+ const config={titleId:'1D30F4'}; // Replace with your public PlayFab Title ID.
  function show(title,msg,extra=''){ $('modalTitle').textContent=title;$('modalText').textContent=msg;$('modalExtra').innerHTML=extra;modal.style.display='flex'; }
  function hide(){modal.style.display='none'}
  $('close').onclick=hide;$('primary').onclick=hide;
