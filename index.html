@@ -66,7 +66,7 @@ a-scene{position:fixed;inset:0}
  const $=id=>document.getElementById(id);
  const modal=$('modal'); let currentRole='player', playerId=null, moving=false;
  const badges={moderator:'🛡 Moderator',owner:'👑 Owner','beta_tester':'🧪 Beta Tester',content_creator:'🎥 Content Creator',met_owner:'⭐ I Met The Owner',trial_mod:'🔰 Trial Moderator'};
- const config={titleId:'YOUR_PLAYFAB_TITLE_ID'};
+ const config={titleId:'YOUR_PLAYFAB_TITLE_ID'}; // Replace with your public PlayFab Title ID.
  function show(title,msg,extra=''){ $('modalTitle').textContent=title;$('modalText').textContent=msg;$('modalExtra').innerHTML=extra;modal.style.display='flex'; }
  function hide(){modal.style.display='none'}
  $('close').onclick=hide;$('primary').onclick=hide;
@@ -106,10 +106,20 @@ a-scene{position:fixed;inset:0}
  $('ventHatch').addEventListener('click',requireMod);
  $('toolsBtn').onclick=()=>{
   if(!['owner','moderator'].includes(currentRole))return;
-  show('Moderator tools','Ban and kick actions must be checked by secure PlayFab CloudScript before they affect another player.',
-   '<p>🔨 Ban hammer · 🔨 Kick hammer</p><p>Trial moderators receive only their badge.</p><button id="banInfo">BAN HAMMER</button> <button id="kickInfo">KICK HAMMER</button>');
-  $('banInfo').onclick=()=>show('Ban hammer','This tool will only work after a server-side BanPlayer CloudScript function is configured.');
-  $('kickInfo').onclick=()=>show('Kick hammer','This tool will only work after a server-side KickPlayer CloudScript function is configured.');
+  show('Moderator tools','Server verification is required for every action.',
+   '<p>🔨 Ban Hammer · 🔨 Kick Hammer</p><label>Target PlayFab ID</label><input id="targetId" autocomplete="off" placeholder="Paste the player PlayFab ID"><label>Ban duration (hours)</label><input id="banHours" type="number" min="1" max="87600" value="24"><button id="banNow">BAN PLAYER</button><button id="kickNow">KICK PLAYER</button><p id="toolStatus">Kick requires multiplayer room hosting and is not active yet.</p>');
+  $('banNow').onclick=()=>{
+   const target=$('targetId').value.trim(), hours=Number($('banHours').value);
+   if(!target||!Number.isFinite(hours)||hours<1||hours>87600){$('toolStatus').textContent='Enter a PlayFab ID and a duration from 1 to 87600 hours.';return}
+   $('toolStatus').textContent='Checking permissions and sending ban request…';
+   PlayFabClientSDK.ExecuteCloudScript({FunctionName:'BanPlayer',FunctionParameter:{targetPlayFabId:target,durationHours:hours,reason:'Forest Runners moderation'}},r=>{
+    if(r.data&&r.data.FunctionResult&&r.data.FunctionResult.success)$('toolStatus').textContent='Ban applied to '+target+'.';
+    else $('toolStatus').textContent='Ban not confirmed. Check CloudScript logs and permissions.';
+   },e=>{$('toolStatus').textContent='Ban failed. Check that BanPlayer is published in CloudScript.';});
+  };
+  $('kickNow').onclick=()=>{
+   $('toolStatus').textContent='Kick is not active until a multiplayer room service is connected. No player was kicked.';
+  };
  };
  $('menuBtn').onclick=()=>show('Forest Runners','Explore the forest, find the vent hatch, and earn your badges.','<p>VR: use the headset Enter VR button. On desktop use WASD and mouse.</p><p>Mobile: use the MOVE and JUMP buttons.</p>');
  $('forward').addEventListener('pointerdown',()=>{moving=true});['pointerup','pointercancel','pointerleave'].forEach(e=>$('forward').addEventListener(e,()=>moving=false));
