@@ -97,12 +97,16 @@ a-scene{position:fixed;inset:0}
      renderRole('player');
      return;
     }
-    if(!result||!result.data||!result.data.PlayFabId){
-     setStatus('PlayFab returned an unexpected response');
+    const loginData=(result&&result.data)?result.data:result;
+    const returnedId=loginData&&(loginData.PlayFabId||loginData.playFabId);
+    if(!returnedId){
+     const details=result&&result.errorMessage?result.errorMessage:
+       (result&&result.error?String(result.error):'Response did not include PlayFabId');
+     setStatus('PlayFab login response: '+String(details).slice(0,85));
      renderRole('player');
      return;
     }
-    playerId=result.data.PlayFabId;
+    playerId=returnedId;
     setStatus('PlayFab connected · '+playerId.slice(0,8));
     PlayFabClientSDK.ExecuteCloudScript({FunctionName:'GetForestRunnersRole',FunctionParameter:{}},(scriptResult,scriptError)=>{
      if(scriptError){renderRole('player');return;}
