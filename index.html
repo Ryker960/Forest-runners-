@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Forest Runners</title>
 <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-<script src="https://download.playfab.com/PlayFabClientApi.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#07150d;color:#efffea;font:16px system-ui,Arial;overflow:hidden}
 #hud{position:fixed;z-index:5;inset:12px 12px auto;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
@@ -66,7 +66,6 @@ a-scene{position:fixed;inset:0}
  const $=id=>document.getElementById(id);
  const modal=$('modal'); let currentRole='player', playerId=null, moving=false;
  const badges={moderator:'🛡 Moderator',owner:'👑 Owner','beta_tester':'🧪 Beta Tester',content_creator:'🎥 Content Creator',met_owner:'⭐ I Met The Owner',trial_mod:'🔰 Trial Moderator'};
- const config={titleId:'1D30F4'}; // Replace with your public PlayFab Title ID.
  function show(title,msg,extra=''){ $('modalTitle').textContent=title;$('modalText').textContent=msg;$('modalExtra').innerHTML=extra;modal.style.display='flex'; }
  function hide(){modal.style.display='none'}
  $('close').onclick=hide;$('primary').onclick=hide;
@@ -76,74 +75,40 @@ a-scene{position:fixed;inset:0}
   $('toolsBtn').hidden=!['owner','moderator'].includes(currentRole);
  }
  function setStatus(s){$('status').textContent=s}
- // PlayFab Client API: only the public Title ID belongs here. Never put a developer secret in browser code.
- function connectPlayFab(){
-  if(!config.titleId||config.titleId==='YOUR_PLAYFAB_TITLE_ID'){setStatus('PlayFab not configured yet');return}
-  if(!window.PlayFabClientSDK || !window.PlayFab){setStatus('PlayFab SDK unavailable — refresh or check connection');return}
-  try {
-   PlayFab.settings.titleId=config.titleId;
-   const customId='fr_'+(localStorage.frDeviceId||(localStorage.frDeviceId='device_'+Math.random().toString(36).slice(2)));
-   setStatus('Signing in to PlayFab…');
-   const timer=setTimeout(()=>setStatus('PlayFab did not respond — check your connection'),15000);
-   PlayFabClientSDK.LoginWithCustomID({
-    TitleId:config.titleId,
-    CustomId:customId,
-    CreateAccount:true
-   },(result,error)=>{
-    clearTimeout(timer);
-    if(error){
-     const msg=(error.errorMessage||error.error||'Unknown PlayFab error');
-     setStatus('PlayFab login error: '+msg.slice(0,90));
-     renderRole('player');
-     return;
-    }
-    const loginData=(result&&result.data)?result.data:result;
-    const returnedId=loginData&&(loginData.PlayFabId||loginData.playFabId);
-    if(!returnedId){
-     const details=result&&result.errorMessage?result.errorMessage:
-       (result&&result.error?String(result.error):'Response did not include PlayFabId');
-     setStatus('PlayFab login response: '+String(details).slice(0,85));
-     renderRole('player');
-     return;
-    }
-    playerId=returnedId;
-    setStatus('PlayFab connected · '+playerId.slice(0,8));
-    PlayFabClientSDK.ExecuteCloudScript({FunctionName:'GetForestRunnersRole',FunctionParameter:{}},(scriptResult,scriptError)=>{
-     if(scriptError){renderRole('player');return;}
-     const role=scriptResult&&scriptResult.data&&scriptResult.data.FunctionResult&&scriptResult.data.FunctionResult.role;
-     renderRole(['owner','moderator','trial_mod','beta_tester','content_creator','met_owner'].includes(role)?role:'player');
-    });
-   });
-  } catch(e){setStatus('PlayFab setup error: '+String(e.message||e).slice(0,80));}
+ // Supabase anonymous player sign-in.
+ const SUPABASE_URL='https://coiyxvliaawofbamlgzv.supabase.co';
+ const SUPABASE_PUBLISHABLE_KEY='sb_publishable_AlSfIbC_8Gw86yYYW_q8kg_cNAPe0kZ';
+ let db=null;
+ async function connectSupabase(){
+  if(!window.supabase||!window.supabase.createClient){setStatus('Supabase SDK unavailable — refresh or check connection');return;}
+  try{
+   db=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+   setStatus('Signing in…');
+   let {data:sessionData,error:sessionError}=await db.auth.getSession();
+   if(sessionError)throw sessionError;
+   let user=sessionData&&sessionData.session&&sessionData.session.user;
+   if(!user){const result=await db.auth.signInAnonymously();if(result.error)throw result.error;user=result.data.user;}
+   if(!user)throw new Error('No player account was returned');
+   playerId=user.id;
+   const profileResult=await db.from('profiles').select('display_name, role').eq('id',user.id).single();
+   if(profileResult.error)throw profileResult.error;
+   const role=profileResult.data&&profileResult.data.role;
+   renderRole(['owner','moderator','trial_mod','beta_tester','content_creator','met_owner'].includes(role)?role:'player');
+   setStatus('Supabase connected · '+user.id.slice(0,8));
+  }catch(e){setStatus('Supabase sign-in error: '+String(e.message||e).slice(0,90));renderRole('player');}
  }
  function requireMod(){
-  if(!['owner','moderator'].includes(currentRole)){show('Access denied','Only verified moderators and the owner can enter the moderator vents. Trial moderators do not have access.');return false}
-  show('Verification','Checking your moderator access with PlayFab…');
-  if(!window.PlayFabClientSDK||!playerId){$('modalText').textContent='PlayFab is not connected. Set up the Title ID and CloudScript first.';return false}
-  PlayFabClientSDK.ExecuteCloudScript({FunctionName:'VerifyModeratorVentAccess',FunctionParameter:{}},r=>{
-   if(r.data&&r.data.FunctionResult&&r.data.FunctionResult.allowed){hide();document.querySelector('#player').setAttribute('position','0 -28 0');show('Welcome to the vents','Moderator access verified. Walk around the moderator room.')}
-   else show('Verification failed','Your account is not authorized for the moderator vents.');
-  },()=>show('Verification failed','PlayFab could not verify your role. Try again later.'));
-  return false;
+  if(!['owner','moderator'].includes(currentRole)){show('Access denied','Only verified moderators and the owner can enter the moderator vents. Trial moderators do not have access.');return false;}
+  if(!playerId){show('Not connected','Your player account is not connected yet. Please refresh and try again.');return false;}
+  document.querySelector('#player').setAttribute('position','0 -28 0');
+  show('Welcome to the vents','Your protected Forest Runners profile confirms moderator access.');
+  return true;
  }
  $('ventBtn').onclick=requireMod;
  $('ventHatch').addEventListener('click',requireMod);
  $('toolsBtn').onclick=()=>{
   if(!['owner','moderator'].includes(currentRole))return;
-  show('Moderator tools','Server verification is required for every action.',
-   '<p>🔨 Ban Hammer · 🔨 Kick Hammer</p><label>Target PlayFab ID</label><input id="targetId" autocomplete="off" placeholder="Paste the player PlayFab ID"><label>Ban duration (hours)</label><input id="banHours" type="number" min="1" max="87600" value="24"><button id="banNow">BAN PLAYER</button><button id="kickNow">KICK PLAYER</button><p id="toolStatus">Kick requires multiplayer room hosting and is not active yet.</p>');
-  $('banNow').onclick=()=>{
-   const target=$('targetId').value.trim(), hours=Number($('banHours').value);
-   if(!target||!Number.isFinite(hours)||hours<1||hours>87600){$('toolStatus').textContent='Enter a PlayFab ID and a duration from 1 to 87600 hours.';return}
-   $('toolStatus').textContent='Checking permissions and sending ban request…';
-   PlayFabClientSDK.ExecuteCloudScript({FunctionName:'BanPlayer',FunctionParameter:{targetPlayFabId:target,durationHours:hours,reason:'Forest Runners moderation'}},r=>{
-    if(r.data&&r.data.FunctionResult&&r.data.FunctionResult.success)$('toolStatus').textContent='Ban applied to '+target+'.';
-    else $('toolStatus').textContent='Ban not confirmed. Check CloudScript logs and permissions.';
-   },e=>{$('toolStatus').textContent='Ban failed. Check that BanPlayer is published in CloudScript.';});
-  };
-  $('kickNow').onclick=()=>{
-   $('toolStatus').textContent='Kick is not active until a multiplayer room service is connected. No player was kicked.';
-  };
+  show('Moderator tools','Your Supabase player profile is connected. Ban and kick actions are not enabled yet; they need a secure server-side moderation function before they can safely affect other players.');
  };
  $('menuBtn').onclick=()=>show('Forest Runners','Explore the forest, find the vent hatch, and earn your badges.','<p>VR: use the headset Enter VR button. On desktop use WASD and mouse.</p><p>Mobile: use the MOVE and JUMP buttons.</p>');
  $('forward').addEventListener('pointerdown',()=>{moving=true});['pointerup','pointercancel','pointerleave'].forEach(e=>$('forward').addEventListener(e,()=>moving=false));
@@ -156,7 +121,7 @@ a-scene{position:fixed;inset:0}
   const trunk=document.createElement('a-cylinder');trunk.setAttribute('radius','.32');trunk.setAttribute('height','4.2');trunk.setAttribute('position','0 2.1 0');trunk.setAttribute('color','#68452c');tree.appendChild(trunk);
   const leaves=document.createElement('a-sphere');leaves.setAttribute('radius','2');leaves.setAttribute('position','0 4.7 0');leaves.setAttribute('color',i%3===0?'#397c3a':'#245e31');tree.appendChild(leaves);forest.appendChild(tree);
  }
- connectPlayFab();
+ connectSupabase();
 })();
 </script>
 <script src="forest-map.js"></script>
