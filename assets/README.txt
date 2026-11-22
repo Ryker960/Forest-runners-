@@ -1,0 +1,1 @@
+Upload CHIMPS_RUNNERS_Cosmetics_Shop.glb into this folder. The game loader expects the exact path assets/CHIMPS_RUNNERS_Cosmetics_Shop.glb.
