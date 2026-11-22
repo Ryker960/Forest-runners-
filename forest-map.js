@@ -1,10 +1,12 @@
-/* FOREST RUNNERS - Main Forest Map (original low-poly assets, Gorilla Tag-style layout)
+
+/* CHIMPS RUNNERS - Main Forest Map (original low-poly assets, Gorilla Tag-style layout)
    Loaded from index.html with: <script src="forest-map.js"></script>
-   Replaces the old tree loop. Existing PlayFab, roles, badges and vent tools stay in index.html. */
+   Replaces the old tree loop. Roles, badges and vent tools stay in index.html (Supabase).
+   Movement/physics now lives in gorilla-locomotion.js (loaded at the bottom of this file). */
 (function () {
   const F = document.getElementById('forest'), P = document.getElementById('player'),
         cam = document.getElementById('camera'), $ = id => document.getElementById(id);
-  if (!F || !P || !cam) { console.error('Forest Runners map: required #forest, #player or #camera element is missing.'); return; }
+  if (!F || !P || !cam) { console.error('Forest map: required #forest, #player or #camera element is missing.'); return; }
   F.innerHTML = '';
   let seed = 7; const R = () => (seed = seed * 16807 % 2147483647) / 2147483647;
   const mk = (tag, a, par) => { const e = document.createElement(tag); for (const k in a) e.setAttribute(k, a[k]); (par || F).appendChild(e); return e; };
@@ -13,7 +15,7 @@
 
   function box(x, y, z, w, h, d, c, solid = true) {
     mk('a-box', { position: `${x} ${y} ${z}`, width: w, height: h, depth: d, color: c, material: FS });
-    if (solid) plats.push({ x1: x - w / 2, x2: x + w / 2, z1: z - d / 2, z2: z + d / 2, t: y + h / 2 });
+    if (solid) plats.push({ x1: x - w / 2, x2: x + w / 2, z1: z - d / 2, z2: z + d / 2, t: y + h / 2, b: y - h / 2 });
   }
   function bigTree(x, z, h, r, leaf) {
     mk('a-cylinder', { position: `${x} ${h / 2} ${z}`, radius: r, height: h, color: '#7a4a2a', 'segments-radial': 7, material: FS });
@@ -42,7 +44,7 @@
   box(0, 8.8, 0, 9, .4, 9, '#c58b4e');
   [[-4.4, 0, .3, 9], [4.4, 0, .3, 9], [0, -4.4, 9, .3]].forEach(([x, z, w, d]) => box(x, 10.3, z, w, 2.6, d, '#e0a860', false));
   mk('a-cone', { position: '0 13.2 0', 'radius-bottom': 7, 'radius-top': 0, height: 3.2, color: '#e5483b', 'segments-radial': 4, rotation: '0 45 0', material: FS });
-  mk('a-text', { value: 'FOREST RUNNERS', position: '0 11.5 4.5', align: 'center', color: '#fff', width: 9 });
+  mk('a-text', { value: 'CHIMPS RUNNERS', position: '0 11.5 4.5', align: 'center', color: '#fff', width: 9 });
   [2, 4, 6].forEach((y, i) => box(2.9 * Math.cos(i * 2), y, 2.9 * Math.sin(i * 2), 1.6, .3, 1.6, '#b87a3d'));
 
   [[16, 0], [-16, 0], [0, 16], [0, -16]].forEach(([x, z], i) => {
@@ -84,7 +86,7 @@
   mk('a-text', { value: 'CAVE', position: '-34.2 4.9 -24.9', align: 'center', color: '#ffe9a8', width: 6, rotation: '0 -40 0' });
   mk('a-sphere', { position: '-42 .1 -30', radius: 1, color: '#ffcf40', material: 'emissive:#ffb300;emissiveIntensity:.6' });
   const vent = $('vent'); if (vent) vent.setAttribute('position', '-45.5 0.08 -33.5');
-  const help = $('help'); if (help) help.textContent = 'Explore the forest! Hold MOVE (or W) at a tree to climb. Find the cave and hidden paths; the vent hatch requires moderator access.';
+  const help = $('help'); if (help) help.textContent = 'VR: push your hands against the ground, trees and platforms to move and climb. A / X = jump. Phone: hold MOVE at a tree to climb. Find the cave; the vent hatch needs moderator access.';
   for (let i = 0; i < 9; i++) { const x = -18 - i * 2.2, z = -12 - i * 1.7;
     mk('a-cylinder', { position: `${x} .25 ${z}`, radius: .8, height: .5, color: '#a9743a', 'segments-radial': 7, material: FS });
     plats.push({ x1: x - .8, x2: x + .8, z1: z - .8, z2: z + .8, t: .5 });
@@ -99,32 +101,7 @@
   P.object3D.position.set(sp[0], 0, sp[1]);
   spawns.forEach(([x, z]) => mk('a-ring', { position: `${x} .05 ${z}`, 'radius-inner': .5, 'radius-outer': .75, rotation: '-90 0 0', color: '#ffe14d' }));
 
-  let fw = false, vy = 0, grounded = true, last = performance.now();
-  const hold = (el) => { if (!el) return; el.addEventListener('pointerdown', () => fw = true); ['pointerup', 'pointercancel', 'pointerleave'].forEach(e => el.addEventListener(e, () => fw = false)); };
-  hold($('forward'));
-  addEventListener('keydown', e => { if (e.code === 'KeyW' || e.code === 'ArrowUp') fw = true; if (e.code === 'Space') jump(); });
-  addEventListener('keyup', e => { if (e.code === 'KeyW' || e.code === 'ArrowUp') fw = false; });
-  function jump() { if (grounded) { vy = 6.2; grounded = false; } }
-  const jumpBtn = $('jump'); if (jumpBtn) jumpBtn.onclick = jump;
-  const c = new THREE.Vector3();
-  function step(now) {
-    const dt = Math.min(.05, (now - last) / 1000); last = now;
-    const p = P.object3D.position;
-    if (p.y > -20) {
-      cam.object3D.getWorldPosition(c);
-      let climbing = false;
-      for (const t of climbs) {
-        const dx = c.x - t.x, dz = c.z - t.z, d = Math.hypot(dx, dz);
-        if (p.y < t.h && d < t.r + .5) { const k = (t.r + .5 - d) / (d || 1); p.x += dx * k; p.z += dz * k; }
-        if (fw && d < t.r + 1.1 && p.y < t.h + .4) climbing = true;
-      }
-      let floor = hillY(c.x, c.z);
-      for (const q of plats) if (c.x > q.x1 && c.x < q.x2 && c.z > q.z1 && c.z < q.z2 && q.t <= p.y + .6) floor = Math.max(floor, q.t);
-      if (climbing) { p.y += 3 * dt; vy = 0; grounded = false; }
-      else { vy -= 18 * dt; p.y += vy * dt; if (p.y <= floor) { p.y = floor; vy = 0; grounded = true; } else if (p.y > floor + .05) grounded = false; }
-      const d = Math.hypot(c.x, c.z); if (d > 56) { p.x -= c.x / d * (d - 56); p.z -= c.z / d * (d - 56); }
-    }
-    requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
+  // Collision data for gorilla-locomotion.js (the old movement loop was removed from this file).
+  window.ForestCollider = { plats, climbs, hills, hillY };
+  const s = document.createElement('script'); s.src = 'gorilla-locomotion.js'; document.body.appendChild(s);
 })();
