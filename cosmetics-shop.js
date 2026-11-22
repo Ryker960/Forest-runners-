@@ -1,5 +1,5 @@
 /* CHIMPS RUNNERS — Cosmetics Shop + Full Seasonal Cosmetics Gallery
-   Shop model: assets/CHIMPS_RUNNERS_Cosmetics_Shop.glb
+   Shop model: assets/gorilla_tag_fangame_shop%20(1).glb
    Full cosmetics model: assets/all_gorilla_tag_season_cosmetics.glb
    The full gallery model contains 326 mesh parts. Mesh parts are not assumed to be
    326 separate purchasable/equippable cosmetics; item mapping needs the player rig.
