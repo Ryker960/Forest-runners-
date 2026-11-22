@@ -3,35 +3,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Forest Runners</title>
+<title>CHIMPS RUNNERS</title>
 <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#07150d;color:#efffea;font:16px system-ui,Arial;overflow:hidden}
 #hud{position:fixed;z-index:5;inset:12px 12px auto;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
 .panel{background:#10271ddd;border:1px solid #4b8056;border-radius:14px;padding:10px 13px;backdrop-filter:blur(8px);pointer-events:auto;max-width:min(92vw,360px)}
-#brand{font-weight:900;letter-spacing:2px;color:#b9ff9d}#status{font-size:12px;color:#c8dfc8}
+#brand{font-weight:900;letter-spacing:2px;color:#b9ff9d}
+#badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}#badges:empty{display:none}.badge{font-size:11px;border:1px solid #82b57d;border-radius:99px;padding:4px 8px;color:#d7ffd0}
 #actions{position:fixed;z-index:6;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:96%;pointer-events:auto}
 button{border:1px solid #72a66e;background:#1b4729;color:white;border-radius:12px;padding:11px 14px;font-weight:700;font-size:14px}
 button:active{transform:scale(.97)}button:disabled{opacity:.35}
 #modal{display:none;position:fixed;z-index:10;inset:0;background:#000b;align-items:center;justify-content:center;padding:18px}
-#modal .panel{width:min(100%,380px);max-width:380px}input{width:100%;padding:12px;border-radius:10px;border:1px solid #69966b;background:#07150d;color:white;margin:8px 0}
-#badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.badge{font-size:11px;border:1px solid #82b57d;border-radius:99px;padding:4px 8px;color:#d7ffd0}
+#modal .panel{width:min(100%,380px);max-width:380px}
 #help{position:fixed;z-index:5;bottom:78px;left:12px;max-width:260px;font-size:12px;color:#e2f5df}
 a-scene{position:fixed;inset:0}
 </style>
 </head>
 <body>
 <div id="hud">
- <div class="panel"><div id="brand">🌲 FOREST RUNNERS</div><div id="status">Connecting…</div><div id="badges"></div></div>
+ <div class="panel"><div id="brand">🐒 CHIMPS RUNNERS</div><div id="badges"></div></div>
  <div class="panel"><button id="menuBtn">MENU</button></div>
 </div>
-<div id="help" class="panel">Explore the forest. Find the metal vent hatch to request moderator access. VR: tap Enter VR. Desktop/mobile: use the on-screen controls.</div>
+<div id="help" class="panel">Explore the forest. VR: tap Enter VR, then push your hands against the ground, trees and platforms. Phone: use the on-screen buttons.</div>
 <div id="actions">
  <button id="forward">▲ MOVE</button><button id="jump">JUMP</button><button id="ventBtn">MOD VENTS</button><button id="toolsBtn" hidden>MOD TOOLS</button>
 </div>
 <div id="modal"><div class="panel">
- <h2 id="modalTitle">Forest Runners</h2><p id="modalText">Welcome to the forest!</p>
+ <h2 id="modalTitle">CHIMPS RUNNERS</h2><p id="modalText">Welcome to the forest!</p>
  <div id="modalExtra"></div>
  <div style="display:flex;gap:8px;margin-top:12px"><button id="primary">OK</button><button id="close">CLOSE</button></div>
 </div></div>
@@ -65,7 +65,7 @@ a-scene{position:fixed;inset:0}
 (function(){
  const $=id=>document.getElementById(id);
  const modal=$('modal'); let currentRole='player', playerId=null, moving=false;
- const badges={moderator:'🛡 Moderator',owner:'👑 Owner','beta_tester':'🧪 Beta Tester',content_creator:'🎥 Content Creator',met_owner:'⭐ I Met The Owner',trial_mod:'🔰 Trial Moderator'};
+ const badges={moderator:'🛡 Moderator',owner:'👑 Owner',beta_tester:'🧪 Beta Tester',content_creator:'🎥 Content Creator',met_owner:'⭐ I Met The Owner',trial_mod:'🔰 Trial Moderator'};
  function show(title,msg,extra=''){ $('modalTitle').textContent=title;$('modalText').textContent=msg;$('modalExtra').innerHTML=extra;modal.style.display='flex'; }
  function hide(){modal.style.display='none'}
  $('close').onclick=hide;$('primary').onclick=hide;
@@ -74,16 +74,15 @@ a-scene{position:fixed;inset:0}
   (role==='owner'?['owner','moderator']:role==='moderator'?['moderator']:role==='trial_mod'?['trial_mod']:role==='beta_tester'?['beta_tester']:role==='content_creator'?['content_creator']:role==='met_owner'?['met_owner']:[]).forEach(k=>{let s=document.createElement('span');s.className='badge';s.textContent=badges[k];$('badges').appendChild(s)});
   $('toolsBtn').hidden=!['owner','moderator'].includes(currentRole);
  }
- function setStatus(s){$('status').textContent=s}
- // Supabase anonymous player sign-in.
+ // Supabase: silent anonymous sign-in. No login screen; players just play.
  const SUPABASE_URL='https://coiyxvliaawofbamlgzv.supabase.co';
  const SUPABASE_PUBLISHABLE_KEY='sb_publishable_AlSfIbC_8Gw86yYYW_q8kg_cNAPe0kZ';
  let db=null;
  async function connectSupabase(){
-  if(!window.supabase||!window.supabase.createClient){setStatus('Supabase SDK unavailable — refresh or check connection');return;}
+  if(!window.supabase||!window.supabase.createClient){console.warn('Supabase SDK unavailable; playing offline.');return;}
   try{
    db=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
-   setStatus('Signing in…');
+   window.ChimpsSupabase={get db(){return db},get playerId(){return playerId},get role(){return currentRole}}; // for multiplayer code
    let {data:sessionData,error:sessionError}=await db.auth.getSession();
    if(sessionError)throw sessionError;
    let user=sessionData&&sessionData.session&&sessionData.session.user;
@@ -94,36 +93,36 @@ a-scene{position:fixed;inset:0}
    if(profileResult.error)throw profileResult.error;
    const role=profileResult.data&&profileResult.data.role;
    renderRole(['owner','moderator','trial_mod','beta_tester','content_creator','met_owner'].includes(role)?role:'player');
-   setStatus('Supabase connected · '+user.id.slice(0,8));
-  }catch(e){setStatus('Supabase sign-in error: '+String(e.message||e).slice(0,90));renderRole('player');}
+   console.info('Supabase connected as',user.id.slice(0,8));
+  }catch(e){console.warn('Supabase error (game continues):',e&&e.message||e);renderRole('player');}
  }
  function requireMod(){
   if(!['owner','moderator'].includes(currentRole)){show('Access denied','Only verified moderators and the owner can enter the moderator vents. Trial moderators do not have access.');return false;}
   if(!playerId){show('Not connected','Your player account is not connected yet. Please refresh and try again.');return false;}
   document.querySelector('#player').setAttribute('position','0 -28 0');
-  show('Welcome to the vents','Your protected Forest Runners profile confirms moderator access.');
+  show('Welcome to the vents','Your protected CHIMPS RUNNERS profile confirms moderator access.');
   return true;
  }
  $('ventBtn').onclick=requireMod;
  $('ventHatch').addEventListener('click',requireMod);
  $('toolsBtn').onclick=()=>{
   if(!['owner','moderator'].includes(currentRole))return;
-  show('Moderator tools','Your Supabase player profile is connected. Ban and kick actions are not enabled yet; they need a secure server-side moderation function before they can safely affect other players.');
+  show('Moderator tools','Ban and kick actions are not enabled yet; they need a secure server-side moderation function before they can safely affect other players.');
  };
- $('menuBtn').onclick=()=>show('Forest Runners','Explore the forest, find the vent hatch, and earn your badges.','<p>VR: use the headset Enter VR button. On desktop use WASD and mouse.</p><p>Mobile: use the MOVE and JUMP buttons.</p>');
+ $('menuBtn').onclick=()=>show('CHIMPS RUNNERS','Explore the forest, find the vent hatch, and earn your badges.','<p>VR: tap Enter VR. Push your hands against the ground, trees and platforms to move and climb. A / X button = jump.</p><p>Phone: hold MOVE and tap JUMP. Desktop: WASD, mouse and Space.</p>');
+ // Phone/desktop walking. Gravity, jumping and climbing live in gorilla-locomotion.js; VR uses arm-push instead.
+ const sc=document.querySelector('a-scene'),pl=$('player'),cam=$('camera'),q=new THREE.Quaternion(),d=new THREE.Vector3();let last=performance.now();
  $('forward').addEventListener('pointerdown',()=>{moving=true});['pointerup','pointercancel','pointerleave'].forEach(e=>$('forward').addEventListener(e,()=>moving=false));
- $('jump').onclick=()=>{const p=document.querySelector('#player');const y=p.object3D.position.y;p.object3D.position.y=y+.7;setTimeout(()=>p.object3D.position.y=y,350)};
- function tick(){if(moving){const p=document.querySelector('#player');const d=new THREE.Vector3(0,0,-.12);d.applyQuaternion(p.object3D.quaternion);p.object3D.position.add(d)}requestAnimationFrame(tick)}tick();
- // Generate a simple, lightweight forest.
- const forest=$('forest');
- for(let i=0;i<65;i++){const a=i*2.399,rad=5+(i%9)*2.7,x=Math.cos(a)*rad,z=Math.sin(a)*rad-7;
-  const tree=document.createElement('a-entity');tree.setAttribute('position',x+' 0 '+z);
-  const trunk=document.createElement('a-cylinder');trunk.setAttribute('radius','.32');trunk.setAttribute('height','4.2');trunk.setAttribute('position','0 2.1 0');trunk.setAttribute('color','#68452c');tree.appendChild(trunk);
-  const leaves=document.createElement('a-sphere');leaves.setAttribute('radius','2');leaves.setAttribute('position','0 4.7 0');leaves.setAttribute('color',i%3===0?'#397c3a':'#245e31');tree.appendChild(leaves);forest.appendChild(tree);
+ function tick(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(moving&&!sc.is('vr-mode')){cam.object3D.getWorldQuaternion(q);d.set(0,0,-1).applyQuaternion(q);d.y=0;if(d.lengthSq()>1e-4){d.normalize();pl.object3D.position.addScaledVector(d,5*dt)}}
+  requestAnimationFrame(tick);
  }
+ requestAnimationFrame(tick);
  connectSupabase();
 })();
 </script>
 <script src="forest-map.js"></script>
 <script src="cosmetics-shop.js"></script>
-</body></html>
+</body>
+</html>
