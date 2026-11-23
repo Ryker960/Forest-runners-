@@ -66,11 +66,11 @@ a-scene{position:fixed;inset:0}
 </a-scene>
 <script src="chimps-config.js?v=ownerfix2"></script>
 <script src="chimps-identity.js?v=ownerfix2"></script>
-<script src="badge-manager.js?v=ownerfix2"></script>\n<script src="player-name-tags.js?v=1"></script>
+<script src="badge-manager.js?v=ownerfix2"></script>
+<script src="player-name-tags.js?v=1"></script>
 <script>
 (function(){
  const $=id=>document.getElementById(id),ID=window.ChimpsID,modal=$('modal');
- let moving=false;
  const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  function show(title,msg,extra=''){$('modalTitle').textContent=title;$('modalText').textContent=msg;$('modalExtra').innerHTML=extra;modal.style.display='flex'}
  function hide(){modal.style.display='none'}
@@ -107,11 +107,7 @@ a-scene{position:fixed;inset:0}
     else alert('Owner setup is still loading. Please reload the game.');
    }
   });
- const sc=document.querySelector('a-scene'),pl=$('player'),cam=$('camera'),q=new THREE.Quaternion(),d=new THREE.Vector3();let last=performance.now();
- $('forward').addEventListener('pointerdown',()=>{moving=true});
- ['pointerup','pointercancel','pointerleave'].forEach(e=>$('forward').addEventListener(e,()=>moving=false));
- function tick(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(moving&&!sc.is('vr-mode')){cam.object3D.getWorldQuaternion(q);d.set(0,0,-1).applyQuaternion(q);d.y=0;if(d.lengthSq()>1e-4){d.normalize();pl.object3D.position.addScaledVector(d,5*dt)}}requestAnimationFrame(tick)}
- requestAnimationFrame(tick);
+ // Movement is handled only by gorilla-locomotion.js to avoid duplicate movement loops.
 })();
 </script>
 <script src="forest-map.js"></script>
