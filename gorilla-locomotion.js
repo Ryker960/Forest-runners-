@@ -66,18 +66,19 @@
       if (vr) {
         for (const h of hands) {
           if (!h.ready) { h.had = false; continue; }
-          // Read the controller's actual world pose. This keeps hand pushing correct
-          // when the player turns, instead of assuming the rig faces world-forward.
+          // Use world pose for surface contact, but local controller movement for
+          // the push delta so moving the player rig does not feed back into the hand.
+          const lp = h.el.object3D.position;
           h.el.object3D.getWorldPosition(hw);
           const hit = contact(hw, T.handR, n);
           if (hit > 0 && h.had) {
-            dd.copy(hw).sub(h.prev).multiplyScalar(-T.handBoost); // body moves opposite the controller's push
+            dd.copy(lp).sub(h.prev).applyQuaternion(P.object3D.quaternion).multiplyScalar(-T.handBoost);
             p.add(dd); p.addScaledVector(n, hit);
             tmp.copy(dd).divideScalar(dt); h.cv.lerp(tmp, .5);
             vel.copy(h.cv); touching = true;
           }
           if ((hit > 0) !== h.touch) { h.touch = hit > 0; h.m.setAttribute('color', h.touch ? '#ffd23f' : '#b87a3d'); }
-          h.prev.copy(hw); h.had = true;
+          h.prev.copy(lp); h.had = true;
         }
       } else for (const h of hands) h.had = false;
 
