@@ -5,6 +5,7 @@
  'use strict';
  const ID=window.ChimpsID, CFG=window.CHIMPS_CONFIG;
  if(!ID||!CFG)return;
+ if(window.AFRAME&&!AFRAME.components['chimps-face-camera'])AFRAME.registerComponent('chimps-face-camera',{tick:function(){const cam=document.getElementById('camera');if(cam&&cam.object3D)this.el.object3D.lookAt(cam.object3D.getWorldPosition(new THREE.Vector3()));}});
  const clean=s=>String(s||'Player').replace(/[<>]/g,'').slice(0,24);
  function badgesFor(id){
    if(id===ID.me().id)return ID.me().badges||[];
@@ -21,7 +22,7 @@
    if(typeof entity==='string')entity=document.querySelector(entity);
    if(!entity||!entity.appendChild)return null;
    let tag=entity.querySelector(':scope > [data-chimps-name-tag]');
-   if(!tag){tag=document.createElement('a-entity');tag.setAttribute('data-chimps-name-tag','');tag.setAttribute('position','0 2.55 0');tag.setAttribute('text',{value:'',align:'center',anchor:'center',baseline:'center',color:'#ffffff',width:5,wrapCount:34,shader:'msdf'});tag.setAttribute('look-at','#camera');entity.appendChild(tag)}
+   if(!tag){tag=document.createElement('a-entity');tag.setAttribute('data-chimps-name-tag','');tag.setAttribute('position','0 2.55 0');tag.setAttribute('text',{value:'',align:'center',anchor:'center',baseline:'center',color:'#ffffff',width:5,wrapCount:34,shader:'msdf'});tag.setAttribute('chimps-face-camera','');entity.appendChild(tag)}
    tag.setAttribute('text','value',labelText(name,id));
    tag.dataset.playerId=String(id||'');
    return tag;
