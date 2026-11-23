@@ -1,1 +1,16 @@
-{"v":1,"version":0,"issuedAt":"2026-11-22T00:00:00Z","players":[],"sig":""}
+{
+  "v": 1,
+  "version": 1,
+  "issuedAt": "2026-11-23T11:32:11.643Z",
+  "players": [
+    {
+      "id": "18f6952ea17253faf1ed",
+      "name": "Chimp2071",
+      "badges": [
+        "beta_tester",
+        "legend"
+      ]
+    }
+  ],
+  "sig": "4vSCnChfFQoEQ5JTTEhFbkZG8uM47UMVHYZb6YPbkt32jBCsJ_Hme9rnX9s9d9stFPgbk2hdebAydU7BiGyqKA"
+}
