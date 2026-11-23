@@ -20,6 +20,7 @@
      tag=document.createElement('a-entity');
      tag.setAttribute('data-chimps-name-tag','');
      tag.setAttribute('position','0 2.55 0');
+     tag.setAttribute('scale','0.5 0.5 0.5');
      tag.setAttribute('chimps-face-camera','');
      const panel=document.createElement('a-box');
      panel.setAttribute('class','name-tag-panel');
