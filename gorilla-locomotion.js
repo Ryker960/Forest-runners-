@@ -4,7 +4,7 @@
    Releasing keeps momentum. A / X button = jump. Non-VR: MOVE / JUMP buttons, W / Space. */
 (function () {
   // ---- tunables ----
-  const T = { grav: 9.8, drag: .25, maxSpeed: 11, jumpV: 6, mobileJump: 6.2, handR: .28, handBoost: 1.15, climbSpeed: 3, bodyR: .3, bounds: 56 };
+  const T = { grav: 9.8, drag: .25, maxSpeed: 11, jumpV: 6, mobileJump: 6.2, handR: .11, handBoost: 1.15, climbSpeed: 3, bodyR: .3, bounds: 56 };
 
   const scene = document.querySelector('a-scene'), P = document.getElementById('player'), cam = document.getElementById('camera'), C = window.ForestCollider;
   if (!scene || !P || !cam || !C) { console.error('Locomotion: missing scene, #player, #camera or ForestCollider (replace forest-map.js too).'); return; }
@@ -16,13 +16,13 @@
 
   // ---- tracked virtual hands on the existing controller entities ----
   P.querySelectorAll('[laser-controls]').forEach(el => {
-    const h = { el, ready: false, connected: false, had: false, touch: false, prev: new V(), cv: new V() };
+    const h = { el, ready: false, had: false, touch: false, prev: new V(), cv: new V() };
     const m = document.createElement('a-sphere');
     m.setAttribute('radius', '.075'); m.setAttribute('color', '#b87a3d'); m.setAttribute('material', 'flatShading:true'); m.setAttribute('visible', 'false');
     el.appendChild(m); h.m = m;
     el.setAttribute('raycaster', 'objects:.clickable'); // lasers only hit shop/vent buttons, not the hands
-    el.addEventListener('controllerconnected', () => { h.connected = true; h.ready = true; m.setAttribute('visible', 'true'); });
-    el.addEventListener('controllerdisconnected', () => { h.connected = false; h.ready = false; h.had = false; h.touch = false; m.setAttribute('visible', 'false'); });
+    el.addEventListener('controllerconnected', () => { h.ready = true; m.setAttribute('visible', 'true'); });
+    el.addEventListener('controllerdisconnected', () => { h.ready = false; h.had = false; m.setAttribute('visible', 'false'); });
     ['abuttondown', 'xbuttondown'].forEach(e => el.addEventListener(e, jump));
     hands.push(h);
   });
@@ -65,11 +65,7 @@
 
       if (vr) {
         for (const h of hands) {
-          const tracked = h.el.components && h.el.components['tracked-controls'];
-          // Recover if the controllerconnected event fired before this script attached.
-          if (h.connected || (tracked && tracked.controller)) h.ready = true;
           if (!h.ready) { h.had = false; continue; }
-          m.setAttribute('visible', 'true');
           // Use world pose for surface contact, but local controller movement for
           // the push delta so moving the player rig does not feed back into the hand.
           const lp = h.el.object3D.position;
