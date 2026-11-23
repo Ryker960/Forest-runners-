@@ -12,18 +12,55 @@
    const entry=(ID.published()||[]).find(p=>p.id===id);
    return entry?(entry.badges||[]):[];
  }
- function labelText(name,id){
-   const lines=[clean(name)];
-   const badges=badgesFor(id).map(k=>CFG.badges[k]).filter(Boolean);
-   if(badges.length)lines.push(badges.map(b=>b.emoji+' '+b.label).join('  ·  '));
-   return lines.join('\\n');
- }
  function upsert(entity,id,name){
    if(typeof entity==='string')entity=document.querySelector(entity);
    if(!entity||!entity.appendChild)return null;
    let tag=entity.querySelector(':scope > [data-chimps-name-tag]');
-   if(!tag){tag=document.createElement('a-entity');tag.setAttribute('data-chimps-name-tag','');tag.setAttribute('position','0 2.55 0');tag.setAttribute('text',{value:'',align:'center',anchor:'center',baseline:'center',color:'#ffffff',width:5,wrapCount:34,shader:'msdf'});tag.setAttribute('chimps-face-camera','');entity.appendChild(tag)}
-   tag.setAttribute('text','value',labelText(name,id));
+   if(!tag){
+     tag=document.createElement('a-entity');
+     tag.setAttribute('data-chimps-name-tag','');
+     tag.setAttribute('position','0 2.55 0');
+     tag.setAttribute('chimps-face-camera','');
+     const panel=document.createElement('a-box');
+     panel.setAttribute('class','name-tag-panel');
+     panel.setAttribute('width','3.1');
+     panel.setAttribute('height','.78');
+     panel.setAttribute('depth','.12');
+     panel.setAttribute('radius','.08');
+     panel.setAttribute('color','#10271d');
+     panel.setAttribute('material','shader:standard;metalness:.25;roughness:.55');
+     panel.setAttribute('position','0 0 0');
+     tag.appendChild(panel);
+     const outline=document.createElement('a-box');
+     outline.setAttribute('width','3.18');
+     outline.setAttribute('height','.86');
+     outline.setAttribute('depth','.06');
+     outline.setAttribute('color','#82b57d');
+     outline.setAttribute('position','0 0 -.07');
+     tag.appendChild(outline);
+     const nameText=document.createElement('a-text');
+     nameText.setAttribute('data-name-line','');
+     nameText.setAttribute('align','center');
+     nameText.setAttribute('anchor','center');
+     nameText.setAttribute('color','#ffffff');
+     nameText.setAttribute('width','4.5');
+     nameText.setAttribute('position','0 .17 .075');
+     nameText.setAttribute('font','mozillavr');
+     tag.appendChild(nameText);
+     const badgeText=document.createElement('a-text');
+     badgeText.setAttribute('data-badge-line','');
+     badgeText.setAttribute('align','center');
+     badgeText.setAttribute('anchor','center');
+     badgeText.setAttribute('color','#caffb9');
+     badgeText.setAttribute('width','4');
+     badgeText.setAttribute('position','0 -.17 .076');
+     badgeText.setAttribute('font','mozillavr');
+     tag.appendChild(badgeText);
+     entity.appendChild(tag);
+   }
+   const badges=badgesFor(id).map(k=>CFG.badges[k]).filter(Boolean);
+   tag.querySelector('[data-name-line]').setAttribute('value',clean(name));
+   tag.querySelector('[data-badge-line]').setAttribute('value',badges.map(b=>b.emoji+' '+b.label).join('  •  ')||'');
    tag.dataset.playerId=String(id||'');
    return tag;
  }
