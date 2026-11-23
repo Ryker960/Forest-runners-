@@ -158,11 +158,11 @@
   function close(){el.style.display='none';if(location.hash==='#owner')history.replaceState(null,'',location.pathname+location.search)}
   async function setup() {
     await ID.init();
-    if (ID.owner.configured() && ID.owner.unlocked()) open();
-    else if (ID.owner.stored()) { unlockScreen(); el.style.display='block'; }
-    else ownerSetupScreen();
+    if (!ID.owner.configured()) ownerSetupScreen();
+    else if (ID.owner.unlocked()) open();
+    else unlockScreen();
   }
   window.ChimpsBadgeManager={open,close,setup};
-  const checkHash=()=>{if(location.hash==='#owner'){if(ID.init)ID.init().then(()=>{if(ID.owner.configured()&&ID.owner.unlocked())open();else if(ID.owner.stored())unlockScreen();else ownerSetupScreen()})}};
+  const checkHash=()=>{if(location.hash==='#owner'){if(ID.init)ID.init().then(()=>{if(!ID.owner.configured())ownerSetupScreen();else if(ID.owner.unlocked())open();else unlockScreen()})}};
   addEventListener('hashchange',checkHash);checkHash();
 })();
