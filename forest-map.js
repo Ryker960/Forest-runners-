@@ -71,12 +71,12 @@
     mk('a-dodecahedron', { position: `${x} ${r * .6} ${z}`, radius: r, color: R() > .5 ? '#9aa3ad' : '#b0a69a', material: FS });
     plats.push({ x1: x - r * .6, x2: x + r * .6, z1: z - r * .6, z2: z + r * .6, t: r * 1.2 });
   });
-  for (let i = 0; i < 46; i++) { const a = R() * 6.28, d = 6 + R() * 48;
+  for (let i = 0; i < 24; i++) { const a = R() * 6.28, d = 6 + R() * 48;
     mk('a-sphere', { position: `${Math.cos(a) * d} .6 ${Math.sin(a) * d}`, radius: .6 + R() * .6, color: ['#1f9e3f', '#2dbf55', '#6bd64a'][i % 3], 'segments-width': 6, 'segments-height': 4, material: FS }); }
-  for (let i = 0; i < 70; i++) { const a = R() * 6.28, d = 4 + R() * 50;
+  for (let i = 0; i < 36; i++) { const a = R() * 6.28, d = 4 + R() * 50;
     mk('a-sphere', { position: `${Math.cos(a) * d} .15 ${Math.sin(a) * d}`, radius: .16, color: ['#ff5c8a', '#ffd23f', '#ffffff', '#b45cff', '#ff8a3d'][i % 5], 'segments-width': 5, 'segments-height': 4 }); }
 
-  for (let i = 0; i < 64; i++) { const a = i / 64 * 6.28, d = 58 + (i % 2) * 4; pine(Math.cos(a) * d, Math.sin(a) * d, 4 + R() * 3); }
+  for (let i = 0; i < 24; i++) { const a = i / 64 * 6.28, d = 58 + (i % 2) * 4; pine(Math.cos(a) * d, Math.sin(a) * d, 4 + R() * 3); }
 
   const cave = { x: -42, z: -30, r: 10, h: 6 };
   mk('a-sphere', { position: `${cave.x} 0 ${cave.z}`, radius: cave.r, scale: `1 ${cave.h / cave.r} 1`, color: '#6c6f78', 'segments-width': 10, 'segments-height': 6, material: FS + ';side:double' });
