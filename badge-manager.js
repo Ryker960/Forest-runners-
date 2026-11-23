@@ -150,4 +150,10 @@
     if (!ID.me || !ID.me().perms || !ID.me().perms.includes('manage_badges')) {
       say('Badge Manager is Owner-only. Unlock the configured Owner key first.',true); return;
     }
-    draft=loadDraft(); managerScreen(); el.
+    draft=loadDraft(); managerScreen(); el.style.display='block';
+  }
+  function close(){el.style.display='none';if(location.hash==='#owner')history.replaceState(null,'',location.pathname+location.search)}
+  window.ChimpsBadgeManager={open,close};
+  const checkHash=()=>{if(location.hash==='#owner'){if(ID.init)ID.init().then(()=>{if(ID.owner.configured()&&ID.owner.unlocked())open();else if(ID.owner.stored())unlockScreen();else ownerSetupScreen()})}};
+  addEventListener('hashchange',checkHash);checkHash();
+})();
