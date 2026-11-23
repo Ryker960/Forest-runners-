@@ -41,6 +41,7 @@
     el.innerHTML = '<div class="bm-card"><div class="bm-top"><strong style="font-size:19px;letter-spacing:1px;color:#b9ff9d">🐒 BADGE MANAGER</strong><button class="secondary" data-action="close">CLOSE</button></div>' + body + '</div>';
   }
   function ownerSetupScreen() {
+    el.style.display = 'block';
     const O = owner();
     if (!O.stored()) {
       shell('<h2>Create your Owner key</h2><p>This creates your Owner signing key on this device. Choose a passphrase with at least 8 characters. Keep the passphrase and encrypted backup safe.</p><input id="newPass" type="password" placeholder="Passphrase (8+ characters)" autocomplete="new-password"><input id="newPass2" type="password" placeholder="Repeat passphrase"><button data-action="create">CREATE OWNER KEY</button><div class="bm-note">Do not share your passphrase or backup. GitHub Pages cannot keep a private key secret if you publish it in a file.</div>');
@@ -51,6 +52,7 @@
     shell('<h2>Owner key setup</h2><p><b>1.</b> Copy the PUBLIC key into <code>chimps-config.js</code> as the value of <code>ownerPublicKey</code>. It is safe to publish the public key.</p><textarea id="publicKey" rows="4" readonly>'+esc(pub)+'</textarea><button data-action="copy" data-field="publicKey">COPY PUBLIC KEY</button><p><b>2.</b> Save your encrypted Owner backup in two safe places. You need the passphrase to restore it.</p><textarea id="ownerBackup" rows="5" readonly>'+esc(backup)+'</textarea><button data-action="copy" data-field="ownerBackup">COPY BACKUP</button><button data-action="downloadBackup">SAVE BACKUP FILE</button><p><b>3.</b> Test the backup now.</p><textarea id="testBackup" rows="3" placeholder="Paste your COB1. backup here"></textarea><input id="testPass" type="password" placeholder="Backup passphrase"><button data-action="testBackup">TEST BACKUP</button><div class="bm-note">After updating <code>chimps-config.js</code> and waiting for GitHub Pages to redeploy, reload the game and unlock Owner mode.</div>');
   }
   function unlockScreen() {
+    el.style.display = 'block';
     shell('<h2>Unlock Owner mode</h2><p>Enter the passphrase for the Owner key stored on this device.</p><input id="unlockPass" type="password" placeholder="Owner passphrase" autocomplete="current-password"><button data-action="unlock">UNLOCK</button><details><summary>Restore an Owner backup</summary><textarea id="restoreBackup" rows="4" placeholder="Paste COB1. backup"></textarea><input id="restorePass" type="password" placeholder="Backup passphrase"><button data-action="restore">RESTORE BACKUP</button></details><details><summary>Lost your old Owner key? Recovery instructions</summary><p>Use the recovery panel after creating a replacement key. If you have lost the old private key, the old registry signature cannot be recreated. Recovered player records must be checked by you before signing again.</p><button data-action="showRecovery">OPEN RECOVERY HELP</button></details>');
   }
   function managerScreen() {
@@ -79,6 +81,7 @@
     return {publicKey:JSON.stringify(pub),backup:'COB1.'+b64(enc.encode(JSON.stringify(record)))};
   }
   function recoveryHelp() {
+    el.style.display = 'block';
     shell('<h2>Owner key recovery</h2><div class="bm-note"><b>Before starting:</b> if your old Owner key still works, keep it. You do not need a replacement. If it is lost, the old registry signature cannot be recovered.</div><h3>Create a replacement Owner key</h3><p>Enter a NEW passphrase. This creates a new encrypted Owner key on this device and displays its public key and backup. It replaces the locally stored Owner key, so save the backup before leaving this screen.</p><input id="replacementPass" type="password" placeholder="New passphrase (8+ characters)"><input id="replacementPass2" type="password" placeholder="Repeat new passphrase"><button data-action="makeReplacement">GENERATE REPLACEMENT KEY</button><div id="replacementResult"></div><h3>After generating</h3><ol><li>Copy the displayed PUBLIC key.</li><li>Edit <code>chimps-config.js</code> on GitHub and replace <code>ownerPublicKey</code> with that public key.</li><li>Commit and wait for GitHub Pages to redeploy.</li><li>Reload the game, open <code>#owner</code>, and unlock using the new passphrase.</li><li>Load the old registry records in the recovery panel, review them, then sign a new registry.</li></ol><p><b>Important:</b> records from an old registry are only recovery suggestions when the old key is lost. Review all badge assignments before signing.</p><button data-action="backToUnlock">BACK</button>');
   }
   async function loadRecovery() {
