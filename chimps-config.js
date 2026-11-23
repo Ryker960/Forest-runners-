@@ -2,7 +2,7 @@
 window.CHIMPS_CONFIG = {
   backend: 'static',
   registryUrl: 'registry.json',
-  ownerPublicKey: null,
+  ownerPublicKey: {"kty":"EC","crv":"P-256","x":"-sopFV9NX3KkXEc8t60acWIarBc7EFGb8YOr-ARJT9Y","y":"bGPLLuopyJFYCfVGMZYI_CW3fM7MzrNxjmD5exYzgWM"},
   badges: {
     owner: {label:'Owner',emoji:'👑',rank:0,assignable:false},
     co_owner: {label:'Co-Owner',emoji:'💎',rank:1,assignable:true},
