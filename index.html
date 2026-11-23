@@ -92,14 +92,21 @@ a-scene{position:fixed;inset:0}
    '<div>Name</div><input id="pfName" maxlength="20" value="'+esc(m.name)+'"><button id="pfSave">SAVE NAME</button>'+
    '<div style="margin-top:8px">Badges</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0">'+(m.badges.length?m.badges.map(badgeHTML).join(''):'<i>No badges yet</i>')+'</div>'+
    '<div>Player Code (send this to the Owner)</div><textarea id="pfCode" rows="3" readonly>'+esc(m.code)+'</textarea><button id="pfCopy">COPY CODE</button>'+
-   '<details style="margin-top:8px"><summary>Identity backup / restore</summary><p style="font-size:12px">Save a backup to keep your identity if you clear browser data or switch devices. Keep it private.</p><textarea id="pfBak" rows="3" placeholder="Backup text appears here, or paste one to restore"></textarea><button id="pfExp">SHOW MY BACKUP</button><button id="pfImp">RESTORE</button></details>');
+   '<button id="ownerSetupBtn" style="margin-top:10px">OWNER SETUP</button>'+
+    '<details style="margin-top:8px"><summary>Identity backup / restore</summary><p style="font-size:12px">Save a backup to keep your identity if you clear browser data or switch devices. Keep it private.</p><textarea id="pfBak" rows="3" placeholder="Backup text appears here, or paste one to restore"></textarea><button id="pfExp">SHOW MY BACKUP</button><button id="pfImp">RESTORE</button></details>');
   $('pfSave').onclick=()=>{ID.setName($('pfName').value);profile()};
   $('pfCopy').onclick=async()=>{const t=$('pfCode');t.select();t.setSelectionRange(0,1e9);try{await navigator.clipboard.writeText(t.value)}catch(e){document.execCommand('copy')}};
   $('pfExp').onclick=()=>{$('pfBak').value=ID.exportId()};
   $('pfImp').onclick=async()=>{try{await ID.importId($('pfBak').value);profile()}catch(e){alert(e.message||e)}};
  }
  $('menuBtn').onclick=()=>show('CHIMPS RUNNERS','Explore the forest, find the vent hatch, and earn badges.','<p>VR: tap Enter VR. Push your hands against the ground, trees and platforms to move and climb. A / X = jump.</p><p>Phone: hold MOVE and tap JUMP. Desktop: WASD, mouse and Space.</p><button id="profBtn">MY PROFILE</button>');
- document.addEventListener('click',e=>{if(e.target&&e.target.id==='profBtn')profile()});
+ document.addEventListener('click',e=>{
+   if(e.target&&e.target.id==='profBtn')profile();
+   if(e.target&&e.target.id==='ownerSetupBtn'){
+    if(window.ChimpsBadgeManager)window.ChimpsBadgeManager.setup();
+    else alert('Owner setup is still loading. Please reload the game.');
+   }
+  });
  const sc=document.querySelector('a-scene'),pl=$('player'),cam=$('camera'),q=new THREE.Quaternion(),d=new THREE.Vector3();let last=performance.now();
  $('forward').addEventListener('pointerdown',()=>{moving=true});
  ['pointerup','pointercancel','pointerleave'].forEach(e=>$('forward').addEventListener(e,()=>moving=false));
