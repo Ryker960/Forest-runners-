@@ -156,7 +156,13 @@
     draft=loadDraft(); managerScreen(); el.style.display='block';
   }
   function close(){el.style.display='none';if(location.hash==='#owner')history.replaceState(null,'',location.pathname+location.search)}
-  window.ChimpsBadgeManager={open,close};
+  async function setup() {
+    await ID.init();
+    if (ID.owner.configured() && ID.owner.unlocked()) open();
+    else if (ID.owner.stored()) { unlockScreen(); el.style.display='block'; }
+    else ownerSetupScreen();
+  }
+  window.ChimpsBadgeManager={open,close,setup};
   const checkHash=()=>{if(location.hash==='#owner'){if(ID.init)ID.init().then(()=>{if(ID.owner.configured()&&ID.owner.unlocked())open();else if(ID.owner.stored())unlockScreen();else ownerSetupScreen()})}};
   addEventListener('hashchange',checkHash);checkHash();
 })();
