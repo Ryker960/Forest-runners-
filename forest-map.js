@@ -103,5 +103,5 @@
 
   // Collision data for gorilla-locomotion.js (the old movement loop was removed from this file).
   window.ForestCollider = { plats, climbs, hills, hillY };
-  const s = document.createElement('script'); s.src = 'gorilla-locomotion.js?v=5'; document.body.appendChild(s);
+  const s = document.createElement('script'); s.src = 'gorilla-locomotion.js?v=6'; document.body.appendChild(s);
 })();
