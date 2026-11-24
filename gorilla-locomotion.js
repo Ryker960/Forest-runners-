@@ -3,7 +3,7 @@
    A hand touching ground / platform / trunk stays planted; moving the controller pulls the body the other way.
    Releasing keeps momentum. A / X = jump. Add ?debug to the address to see a live readout in VR. */
 (function () {
-  const T = { grav: 9.8, drag: .25, maxSpeed: 9, jumpV: 5.5, mobileJump: 6.2, handR: .12, handBoost: 1, maxStep: .5, maxPush: .15, climbSpeed: 3, bodyR: .3, bounds: 56 };
+  const T = { grav: 9.8, drag: .25, maxSpeed: 9, jumpV: 5.5, mobileJump: 6.2, handR: .30, handBoost: 1, maxStep: .5, maxPush: .15, climbSpeed: 3, bodyR: .3, bounds: 56 };
 
   const scene = document.querySelector('a-scene'), P = document.getElementById('player'), cam = document.getElementById('camera'), C = window.ForestCollider;
   if (!scene || !P || !cam || !C) { console.error('Locomotion: missing scene, #player, #camera or ForestCollider (replace forest-map.js too).'); return; }
@@ -28,7 +28,10 @@
   // A controller counts as present if the event fired, A-Frame has bound an input source, or the pose has moved off the origin.
   function present(h) {
     const tc = h.el.components && h.el.components['tracked-controls'];
-    return h.evt || !!(tc && tc.controller) || h.el.object3D.position.lengthSq() > 1e-6;
+    const xr = scene.renderer && scene.renderer.xr;
+    const session = xr && xr.isPresenting && xr.getSession ? xr.getSession() : null;
+    const source = !!(session && Array.from(session.inputSources || []).some(s => s.handedness === h.name));
+    return h.evt || source || !!(tc && tc.controller) || h.el.object3D.position.lengthSq() > 1e-6;
   }
 
   const fb = document.getElementById('forward');
