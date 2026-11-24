@@ -53,6 +53,24 @@
     box(x, 8.8, z, 6, .4, 6, '#b87a3d');
     [2.2, 4.4, 6.6].forEach((y, k) => box(x + (k % 2 ? -2.4 : 2.4) * (z === 0 ? 1 : 0) + (z !== 0 ? (k % 2 ? 2.4 : -2.4) : 0), y, z + (z !== 0 ? 0 : (k % 2 ? 2.4 : -2.4)), 1.8, .3, 1.8, '#9c6633'));
   });
+  // Ground-level shop hut: empty display stands for the user's own cosmetics later.
+  box(12, .2, -11, 8, .4, 7, '#8b633b');
+  box(12, 2.1, -14.2, 8, 3.8, .35, '#80502e');
+  box(8.2, 2.1, -11, .35, 3.8, 6.4, '#80502e');
+  box(15.8, 2.1, -11, .35, 3.8, 6.4, '#80502e');
+  box(12, 4.05, -11, 8.5, .35, 7.2, '#a56b36');
+  // Low front side panels leave a wide, walk-in entrance.
+  box(9.25, 1.2, -7.8, 2.1, 2.4, .35, '#80502e');
+  box(14.75, 1.2, -7.8, 2.1, 2.4, .35, '#80502e');
+  box(12, .75, -12.8, 3.2, 1.1, .8, '#9b6335');
+  // Empty cosmetic display plinths.
+  [[9.8,-10.5],[12,-10.5],[14.2,-10.5]].forEach(([x,z]) => {
+    box(x, .75, z, 1.1, .7, 1.1, '#c58b4e');
+    mk('a-box', { position: `${x} 1.2 ${z}`, width: .75, height: .12, depth: .75, color: '#e0bd7d', material: FS });
+  });
+  mk('a-text', { value: 'SHOP', position: '12 4.7 -7.55', align: 'center', color: '#fff4c8', width: 7, scale: '1.4 1.4 1.4' });
+  mk('a-text', { value: 'COMING SOON', position: '12 2.6 -13.95', align: 'center', color: '#ffe4a3', width: 5 });
+
   box(9, 8.85, 0, 7, .3, 1.8, '#d9a15f'); box(-9, 8.85, 0, 7, .3, 1.8, '#d9a15f');
   box(0, 8.85, 9, 1.8, .3, 7, '#d9a15f'); box(0, 8.85, -9, 1.8, .3, 7, '#d9a15f');
   box(16, 11.5, 8, 1.8, .3, 12, '#c98f50'); box(16, 11.5, 14.5, 3, .3, 3, '#c98f50');
