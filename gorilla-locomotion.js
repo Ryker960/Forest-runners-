@@ -64,6 +64,15 @@
       const vr = scene.is('vr-mode'); let touching = false;
 
       if (vr) {
+        // The controllerconnected event can fire before this script attaches.
+        // Re-enable tracking once VR is active so the hands still drive movement.
+        for (const h of hands) {
+          if (!h.ready) {
+            h.ready = true;
+            h.had = false;
+            h.m.setAttribute('visible', 'true');
+          }
+        }
         for (const h of hands) {
           if (!h.ready) { h.had = false; continue; }
           // Use world pose for surface contact, but local controller movement for
@@ -101,7 +110,9 @@
       }
       for (const q of C.plats) {
         const b = q.b || 0, r = T.bodyR;
-        if (p.y >= q.t - .25 || p.y + 1.8 < b) continue;
+        // Short body collision only: this is a legless, arm-driven player,
+        // not a full-height humanoid capsule.
+        if (p.y >= q.t - .25 || p.y + .65 < b) continue;
         if (cw.x > q.x1 - r && cw.x < q.x2 + r && cw.z > q.z1 - r && cw.z < q.z2 + r) {
           const a = [cw.x - (q.x1 - r), q.x2 + r - cw.x, cw.z - (q.z1 - r), q.z2 + r - cw.z]; let i = 0;
           for (let k = 1; k < 4; k++) if (a[k] < a[i]) i = k;
