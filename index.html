@@ -37,7 +37,7 @@ a-scene{position:fixed;inset:0}
  <h2 id="modalTitle">CHIMPS RUNNERS</h2><p id="modalText"></p><div id="modalExtra"></div>
  <div style="display:flex;gap:8px;margin-top:12px"><button id="primary">OK</button><button id="close">CLOSE</button></div>
 </div></div>
-<a-scene renderer="antialias:true; colorManagement:true" vr-mode-ui="enabled:true" background="color:#9ac7d0" fog="type:linear; color:#9ac7d0; near:18; far:90">
+<a-scene webxr="referenceSpaceType: local-floor; optionalFeatures: bounded-floor" renderer="antialias:true; colorManagement:true" vr-mode-ui="enabled:true" background="color:#9ac7d0" fog="type:linear; color:#9ac7d0; near:18; far:90">
  <a-assets>
   <a-mixin id="trunk" geometry="primitive:cylinder; radius:0.42; height:5" material="color:#60402a"></a-mixin>
   <a-mixin id="leaf" geometry="primitive:sphere; radius:2.1" material="color:#245f32"></a-mixin>
@@ -51,7 +51,8 @@ a-scene{position:fixed;inset:0}
   <a-camera id="camera" position="0 1.6 0" wasd-controls="acceleration:22" look-controls>
    <a-cursor color="#e6ffcc" raycaster="objects:.clickable"></a-cursor>
   </a-camera>
-  <a-entity laser-controls="hand:left"></a-entity><a-entity laser-controls="hand:right"></a-entity>
+  <a-entity id="leftController" laser-controls="hand:left"></a-entity>
+  <a-entity id="rightController" laser-controls="hand:right"></a-entity>
  </a-entity>
  <a-entity id="vent" position="0 0.08 -8">
   <a-box width="2.3" height=".18" depth="2.3" color="#4d5550" material="metalness:.7;roughness:.4"></a-box>
