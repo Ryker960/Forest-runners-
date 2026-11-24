@@ -114,6 +114,23 @@
   mk('a-sphere', { position: '-30 12.7 -20', radius: .5, color: '#ffd23f', material: 'emissive:#ffc400;emissiveIntensity:.7' });
   box(24, 3, 4, 5, .3, 2, '#a06a38');
 
+  // Climbable perimeter walls with smooth, slippery top caps.
+  const wallY = 6, wallH = 12, wallEdge = 54.5, wallLen = 110, wallThick = 1.1, capH = .18;
+  const slippery = [];
+  function perimeterWall(x, z, w, d) {
+    box(x, wallY, z, w, wallH, d, '#687b7d');
+    mk('a-box', { position: `${x} ${wallH + capH / 2} ${z}`, width: w + .25, height: capH, depth: d + .25,
+      color: '#a9c6c9', material: 'metalness:.72;roughness:.06' });
+    const x1 = x - w / 2 - .13, x2 = x + w / 2 + .13, z1 = z - d / 2 - .13, z2 = z + d / 2 + .13;
+    plats.push({ x1, x2, z1, z2, t: wallH + capH, b: wallH });
+    slippery.push({ x1, x2, z1, z2, y: wallH + capH });
+  }
+  perimeterWall(-wallEdge, 0, wallThick, wallLen);
+  perimeterWall(wallEdge, 0, wallThick, wallLen);
+  perimeterWall(0, -wallEdge, wallLen, wallThick);
+  perimeterWall(0, wallEdge, wallLen, wallThick);
+  window.ForestSlippery = slippery;
+
   const spawns = [[0, 10], [8, 8], [-8, 8], [10, -8], [-10, -9], [0, 22]];
   window.ForestSpawns = spawns;
   const sp = spawns[Math.floor(Math.random() * spawns.length)];
@@ -122,5 +139,5 @@
 
   // Collision data for gorilla-locomotion.js (the old movement loop was removed from this file).
   window.ForestCollider = { plats, climbs, hills, hillY };
-  const s = document.createElement('script'); s.src = 'gorilla-locomotion.js?v=10'; document.body.appendChild(s);
+  const s = document.createElement('script'); s.src = 'gorilla-locomotion.js?v=11'; document.body.appendChild(s);
 })();
