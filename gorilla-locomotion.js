@@ -4,7 +4,7 @@
    Releasing keeps momentum. A / X button = jump. Non-VR: MOVE / JUMP buttons, W / Space. */
 (function () {
   // ---- tunables ----
-  const T = { grav: 9.8, drag: .25, maxSpeed: 11, jumpV: 6, mobileJump: 6.2, handR: .11, handBoost: 1.15, climbSpeed: 3, bodyR: .3, bounds: 56 };
+  const T = { grav: 12, drag: 2.2, maxSpeed: 7.5, jumpV: 5.2, mobileJump: 6.2, handR: .11, handBoost: .9, climbSpeed: 3, bodyR: .3, bounds: 56 };
 
   const scene = document.querySelector('a-scene'), P = document.getElementById('player'), cam = document.getElementById('camera'), C = window.ForestCollider;
   if (!scene || !P || !cam || !C) { console.error('Locomotion: missing scene, #player, #camera or ForestCollider (replace forest-map.js too).'); return; }
