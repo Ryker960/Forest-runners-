@@ -17,9 +17,10 @@
     mk('a-box', { position: `${x} ${y} ${z}`, width: w, height: h, depth: d, color: c, material: FS });
     if (solid) plats.push({ x1: x - w / 2, x2: x + w / 2, z1: z - d / 2, z2: z + d / 2, t: y + h / 2, b: y - h / 2 });
   }
-  function bigTree(x, z, h, r, leaf) {
+  function bigTree(x, z, h, r, leaf, showCanopy = true) {
     mk('a-cylinder', { position: `${x} ${h / 2} ${z}`, radius: r, height: h, color: '#7a4a2a', 'segments-radial': 7, material: FS });
-    for (let i = 0; i < 4; i++) mk('a-sphere', { position: `${x + (R() - .5) * 4} ${h + 1 + R() * 2} ${z + (R() - .5) * 4}`, radius: 3 + R() * 1.5, color: leaf, 'segments-width': 6, 'segments-height': 5, material: FS });
+    // Keep the central treehouse interior clear; other trees retain their foliage.
+    if (showCanopy) for (let i = 0; i < 4; i++) mk('a-sphere', { position: `${x + (R() - .5) * 4} ${h + 1 + R() * 2} ${z + (R() - .5) * 4}`, radius: 3 + R() * 1.5, color: leaf, 'segments-width': 6, 'segments-height': 5, material: FS });
     climbs.push({ x, z, r, h });
   }
   function pine(x, z, s) {
@@ -40,7 +41,7 @@
     mk('a-sphere', { position: `${x} 0 ${z}`, radius: r, scale: `1 ${h / r} 1`, color: '#63e04a', 'segments-width': 10, 'segments-height': 6, material: FS });
   });
 
-  bigTree(0, 0, 11, 2.3, '#35b34a');
+  bigTree(0, 0, 11, 2.3, '#35b34a', false);
   box(0, 8.8, 0, 9, .4, 9, '#c58b4e');
   [[-4.4, 0, .3, 9], [4.4, 0, .3, 9], [0, -4.4, 9, .3]].forEach(([x, z, w, d]) => box(x, 10.3, z, w, 2.6, d, '#e0a860', false));
   mk('a-cone', { position: '0 13.2 0', 'radius-bottom': 7, 'radius-top': 0, height: 3.2, color: '#e5483b', 'segments-radial': 4, rotation: '0 45 0', material: FS });
