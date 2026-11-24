@@ -14,8 +14,8 @@
   function jump() { if (grounded) { vel.y = scene.is('vr-mode') ? T.jumpV : T.mobileJump; grounded = false; } }
 
   // ---- tracked virtual hands: spheres parented to the controller entities, so they sit exactly on the controllers ----
-  P.querySelectorAll('[laser-controls]').forEach(el => {
-    const cfg = el.getAttribute('laser-controls'), h = { el, name: (cfg && cfg.hand) || '?', evt: false, had: false, touch: false, prev: new V(), cv: new V() };
+  P.querySelectorAll('[tracked-controls]').forEach(el => {
+    const cfg = el.getAttribute('tracked-controls'), h = { el, name: (cfg && cfg.hand) || '?', evt: false, had: false, touch: false, prev: new V(), cv: new V() };
     const m = document.createElement('a-sphere');
     m.setAttribute('radius', '.075'); m.setAttribute('color', '#b87a3d'); m.setAttribute('material', 'flatShading:true'); m.setAttribute('visible', 'false');
     el.appendChild(m); h.m = m;
