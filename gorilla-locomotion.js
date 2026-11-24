@@ -125,7 +125,12 @@
       const fl = floorAt(cw.x, cw.z, p.y);
       grounded = p.y <= fl + .04;
       if (p.y < fl) { p.y = fl; if (vel.y < 0) vel.y = 0; grounded = true; }
-      if (grounded && !touching) { vel.x *= .85; vel.z *= .85; }
+      const onSlippery = (C.slippery || []).some(s =>
+        cw.x >= s.x1 && cw.x <= s.x2 && cw.z >= s.z1 && cw.z <= s.z2 &&
+        Math.abs(p.y - s.y) < .35
+      );
+      // Smooth wall caps have almost no ground friction, so players slide across them.
+      if (grounded && !touching) { const grip = onSlippery ? .995 : .85; vel.x *= grip; vel.z *= grip; }
       const d = Math.hypot(cw.x, cw.z); if (d > T.bounds) { const k = (d - T.bounds) / d; p.x -= cw.x * k; p.z -= cw.z * k; vel.x = vel.z = 0; }
 
       if (dbg && (++frame % 10 === 0)) dbg.setAttribute('value', (vr ? 'VR' : 'flat') + ' hands:' + live + '/' + hands.length + '\n' +
