@@ -18,7 +18,7 @@
   P.querySelectorAll('[laser-controls]').forEach(el => {
     const h = { el, ready: false, had: false, touch: false, prev: new V(), cv: new V() };
     const m = document.createElement('a-sphere');
-    m.setAttribute('radius', '.075'); m.setAttribute('color', '#b87a3d'); m.setAttribute('material', 'flatShading:true'); m.setAttribute('visible', 'false');
+    m.setAttribute('radius', '.075'); m.setAttribute('position', '0 -0.55 0'); m.setAttribute('color', '#b87a3d'); m.setAttribute('material', 'flatShading:true'); m.setAttribute('visible', 'false');
     el.appendChild(m); h.m = m;
     el.setAttribute('raycaster', 'objects:.clickable'); // lasers only hit shop/vent buttons, not the hands
     el.addEventListener('controllerconnected', () => { h.ready = true; m.setAttribute('visible', 'true'); });
@@ -69,7 +69,7 @@
           // Use world pose for surface contact, but local controller movement for
           // the push delta so moving the player rig does not feed back into the hand.
           const lp = h.el.object3D.position;
-          h.el.object3D.getWorldPosition(hw);
+          h.m.object3D.getWorldPosition(hw);
           const hit = contact(hw, T.handR, n);
           if (hit > 0 && h.had) {
             dd.copy(lp).sub(h.prev).applyQuaternion(P.object3D.quaternion).multiplyScalar(-T.handBoost);
