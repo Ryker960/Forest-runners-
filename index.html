@@ -51,8 +51,8 @@ a-scene{position:fixed;inset:0}
   <a-camera id="camera" position="0 1.6 0" wasd-controls="acceleration:22" look-controls>
    <a-cursor color="#e6ffcc" raycaster="objects:.clickable"></a-cursor>
   </a-camera>
-  <a-entity id="leftController" laser-controls="hand:left"></a-entity>
-  <a-entity id="rightController" laser-controls="hand:right"></a-entity>
+  <a-entity id="leftController" tracked-controls="hand: left"></a-entity>
+  <a-entity id="rightController" tracked-controls="hand: right"></a-entity>
  </a-entity>
  <a-entity id="vent" position="0 0.08 -8">
   <a-box width="2.3" height=".18" depth="2.3" color="#4d5550" material="metalness:.7;roughness:.4"></a-box>
