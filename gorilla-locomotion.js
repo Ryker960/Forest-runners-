@@ -64,23 +64,52 @@
       const vr = scene.is('vr-mode'); let touching = false;
 
       if (vr) {
+        // Average both hands' movement so two contacts cannot double the push.
+        const push = new V(), pushVelocity = new V();
+        let activeHands = 0;
         for (const h of hands) {
-          if (!h.ready) { h.had = false; continue; }
-          // Use world pose for surface contact, but local controller movement for
-          // the push delta so moving the player rig does not feed back into the hand.
+          if (!h.ready) { h.had = false; h.touch = false; continue; }
           const lp = h.el.object3D.position;
           h.m.object3D.getWorldPosition(hw);
           const hit = contact(hw, T.handR, n);
-          if (hit > 0 && h.had) {
-            dd.copy(lp).sub(h.prev).applyQuaternion(P.object3D.quaternion).multiplyScalar(-T.handBoost);
-            p.add(dd); p.addScaledVector(n, hit);
-            tmp.copy(dd).divideScalar(dt); h.cv.lerp(tmp, .5);
-            vel.copy(h.cv); touching = true;
+          const inContact = hit > 0;
+          if (inContact) {
+            touching = true;
+            if (h.had && h.touch) {
+              // Clamp tracking spikes and smooth the estimated hand velocity.
+              dd.copy(lp).sub(h.prev).applyQuaternion(P.object3D.quaternion).multiplyScalar(-T.handBoost);
+              const distance = dd.length();
+              if (distance > .075) dd.multiplyScalar(.075 / distance);
+              push.add(dd);
+              tmp.copy(dd).divideScalar(dt);
+              const speed = tmp.length();
+              if (speed > 4.2) tmp.multiplyScalar(4.2 / speed);
+              h.cv.lerp(tmp, .22);
+              pushVelocity.add(h.cv);
+              activeHands++;
+            } else {
+              h.cv.set(0, 0, 0);
+            }
+            // Only a tiny positional correction; large overlap corrections caused popping.
+            if (hit > .025) p.addScaledVector(n, Math.min(hit - .015, .025));
+          } else {
+            h.cv.multiplyScalar(.7);
           }
-          if ((hit > 0) !== h.touch) { h.touch = hit > 0; h.m.setAttribute('color', h.touch ? '#ffd23f' : '#b87a3d'); }
-          h.prev.copy(lp); h.had = true;
+          if (inContact !== h.touch) {
+            h.touch = inContact;
+            h.m.setAttribute('color', inContact ? '#ffd23f' : '#b87a3d');
+          }
+          h.prev.copy(lp);
+          h.had = true;
         }
-      } else for (const h of hands) h.had = false;
+        if (activeHands) {
+          push.multiplyScalar(1 / activeHands);
+          p.add(push);
+          vel.copy(pushVelocity).multiplyScalar(1 / activeHands);
+        }
+      } else {
+        for (const h of hands) { h.had = false; h.touch = false; h.cv.set(0, 0, 0); }
+      }
 
       cam.object3D.getWorldPosition(cw);
       let climbing = false;
