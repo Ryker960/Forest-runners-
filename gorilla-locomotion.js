@@ -64,32 +64,71 @@
       const vr = scene.is('vr-mode'); let touching = false;
 
       if (vr) {
-        // The controllerconnected event can fire before this script attaches.
-        // Re-enable tracking once VR is active so the hands still drive movement.
-        for (const h of hands) {
-          if (!h.ready) {
-            h.ready = true;
-            h.had = false;
-            h.m.setAttribute('visible', 'true');
-          }
-        }
+        // Gorilla-style arm locomotion: clamp each hand to arm reach, sweep its
+        // path against the map, then pull the player by the hand's blocked motion.
+        cam.object3D.getWorldPosition(cw);
+        const pushes = [];
         for (const h of hands) {
           if (!h.ready) { h.had = false; continue; }
-          // Use world pose for surface contact, but local controller movement for
-          // the push delta so moving the player rig does not feed back into the hand.
-          const lp = h.el.object3D.position;
-          h.m.object3D.getWorldPosition(hw);
-          const hit = contact(hw, T.handR, n);
-          if (hit > 0 && h.had) {
-            dd.copy(lp).sub(h.prev).applyQuaternion(P.object3D.quaternion).multiplyScalar(-T.handBoost);
-            p.add(dd); p.addScaledVector(n, hit);
-            tmp.copy(dd).divideScalar(dt); h.cv.lerp(tmp, .5);
-            vel.copy(h.cv); touching = true;
+
+          const target = h.m.object3D;
+          target.getWorldPosition(hw);
+          const arm = hw.clone().sub(cw);
+          if (arm.length() > 1.5) hw.copy(cw).add(arm.normalize().multiplyScalar(1.5));
+
+          if (!h.had) {
+            h.prev.copy(hw); // world-space hand anchor
+            h.had = true;
+            h.touch = contact(hw, T.handR, n) > 0;
+            continue;
           }
-          if ((hit > 0) !== h.touch) { h.touch = hit > 0; h.m.setAttribute('color', h.touch ? '#ffd23f' : '#b87a3d'); }
-          h.prev.copy(lp); h.had = true;
+
+          const travel = hw.clone().sub(h.prev);
+          let blocked = false;
+          let safe = h.prev.clone();
+          let hitNormal = new V();
+          // Short sphere-cast approximation prevents fast hand movement tunnelling
+          // through thin platforms or tree trunks.
+          const steps = Math.max(1, Math.min(12, Math.ceil(travel.length() / .08)));
+          for (let s = 1; s <= steps; s++) {
+            const sample = h.prev.clone().addScaledVector(travel, s / steps);
+            const depth = contact(sample, T.handR, n);
+            if (depth > 0) {
+              safe.copy(sample).addScaledVector(n, depth);
+              hitNormal.copy(n);
+              blocked = true;
+              break;
+            }
+            safe.copy(sample);
+          }
+
+          if (blocked) {
+            // A hand already planted on a surface stays anchored; the difference
+            // between its anchor and controller target moves the body, not the legs.
+            const push = h.touch ? h.prev.clone().sub(hw) : safe.clone().sub(hw);
+            if (push.lengthSq() > 0.000001) pushes.push(push);
+            h.prev.copy(safe);
+            h.cv.copy(pushes.length ? pushes[pushes.length - 1] : new V()).multiplyScalar(1 / dt);
+            h.touch = true;
+            touching = true;
+            h.m.setAttribute('color', '#ffd23f');
+          } else {
+            h.prev.copy(hw);
+            h.touch = false;
+            h.m.setAttribute('color', '#b87a3d');
+          }
         }
-      } else for (const h of hands) h.had = false;
+
+        if (pushes.length) {
+          let bodyPush = new V();
+          for (const push of pushes) bodyPush.add(push);
+          if (pushes.length > 1) bodyPush.multiplyScalar(.5);
+          p.add(bodyPush);
+          tmp.copy(bodyPush).divideScalar(dt);
+          if (tmp.length() > T.maxSpeed) tmp.setLength(T.maxSpeed);
+          vel.copy(tmp);
+        }
+      }
 
       cam.object3D.getWorldPosition(cw);
       let climbing = false;
