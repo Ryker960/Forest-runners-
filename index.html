@@ -26,7 +26,7 @@ a-scene{position:fixed;inset:0}
 <body>
 <div id="hud">
  <div class="panel"><div id="brand">🐒 CHIMPS RUNNERS</div><div id="badges"></div></div>
- <div class="panel"><button id="menuBtn">MENU</button></div>
+ <div class="panel"><button id="tutorialBtn">TUTORIAL</button> <button id="menuBtn">MENU</button></div>
 </div>
 <div id="help" class="panel">Explore the forest. VR: tap Enter VR, then push your hands against the ground, trees and platforms. Phone: use the on-screen buttons.</div>
 <div id="actions">
@@ -75,6 +75,32 @@ a-scene{position:fixed;inset:0}
  function show(title,msg,extra=''){$('modalTitle').textContent=title;$('modalText').textContent=msg;$('modalExtra').innerHTML=extra;modal.style.display='flex'}
  function hide(){modal.style.display='none'}
  $('close').onclick=hide;$('primary').onclick=hide;
+ const tutorialPages=[
+  {title:'WELCOME TO CHIMPS RUNNERS',text:'Explore the forest, climb the trees and discover the treehouses. Walk into the SHOP building to see the empty display stands. Your own cosmetics will be added later.'},
+  {title:'VR CONTROLS',text:'Put on your Quest headset and press ENTER VR. Move your controller hands against the floor, a tree or a platform. Move a hand away from the surface to push your body in the opposite direction. Press A or X to jump.'},
+  {title:'PHONE CONTROLS',text:'Hold the MOVE button to move forward. Get close to a tree and keep holding MOVE to climb. Tap JUMP to jump. Drag on the screen to look around.'},
+  {title:'EXPLORE THE MAP',text:'Look for the central treehouse, the smaller treehouses, the cave and the wooden SHOP sign. The moderator vent is restricted to authorized staff. Have fun exploring!'}
+ ];
+ let tutorialPage=0;
+ function openTutorial(){
+  tutorialPage=0;
+  function draw(){
+   const p=tutorialPages[tutorialPage];
+   $('modalTitle').textContent=p.title;
+   $('modalText').textContent=p.text;
+   $('modalExtra').innerHTML='<div style="display:flex;gap:5px;margin-top:14px">'+tutorialPages.map((_,i)=>'<span style="height:5px;flex:1;border-radius:9px;background:'+(i<=tutorialPage?'#9be477':'#385340')+'"></span>').join('')+'</div><p style="font-size:12px;color:#c5dfc5">STEP '+(tutorialPage+1)+' OF '+tutorialPages.length+'</p>';
+   $('primary').textContent=tutorialPage===tutorialPages.length-1?'FINISH':'NEXT';
+   modal.style.display='flex';
+  }
+  $('primary').onclick=()=>{
+   if(tutorialPage<tutorialPages.length-1){tutorialPage++;draw();}
+   else {hide();$('primary').textContent='OK';$('primary').onclick=hide;try{localStorage.setItem('chimpsTutorialSeen','1')}catch(e){}}
+  };
+  $('close').onclick=()=>{hide();$('primary').textContent='OK';$('primary').onclick=hide;try{localStorage.setItem('chimpsTutorialSeen','1')}catch(e){}};
+  draw();
+ }
+ $('tutorialBtn').onclick=openTutorial;
+ try{if(!localStorage.getItem('chimpsTutorialSeen'))setTimeout(openTutorial,1200)}catch(e){}
  const badgeHTML=k=>{const b=ID.badge(k);return b?'<span class="badge">'+b.emoji+' '+esc(b.label)+'</span>':''};
  function renderHud(){const m=ID.me();$('badges').innerHTML=m.badges.map(badgeHTML).join('');$('toolsBtn').hidden=!m.perms.includes('tools');$('bmBtn').hidden=!m.perms.includes('manage_badges')}
  ID.on(renderHud);
