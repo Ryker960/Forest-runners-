@@ -1,45 +1,55 @@
-/* CHIMPS RUNNERS - original arm-push locomotion (A-Frame 1.6, Quest 3S WebXR).
+/* CHIMPS RUNNERS - original arm-push locomotion (A-Frame 1.6, Quest 3S controllers, no hand tracking).
    Loaded automatically by forest-map.js. Uses window.ForestCollider from forest-map.js.
-   VR: a hand touching ground/platform/trunk "sticks"; moving it pulls the player the other way.
-   Releasing keeps momentum. A / X button = jump. Non-VR: MOVE / JUMP buttons, W / Space. */
+   A hand touching ground / platform / trunk stays planted; moving the controller pulls the body the other way.
+   Releasing keeps momentum. A / X = jump. Add ?debug to the address to see a live readout in VR. */
 (function () {
-  // ---- tunables ----
-  const T = { grav: 12, drag: 2.2, maxSpeed: 7.5, jumpV: 5.2, mobileJump: 6.2, handR: .11, handBoost: .9, climbSpeed: 3, bodyR: .3, bounds: 56 };
+  const T = { grav: 9.8, drag: .25, maxSpeed: 9, jumpV: 5.5, mobileJump: 6.2, handR: .12, handBoost: 1, maxStep: .5, maxPush: .15, climbSpeed: 3, bodyR: .3, bounds: 56 };
 
   const scene = document.querySelector('a-scene'), P = document.getElementById('player'), cam = document.getElementById('camera'), C = window.ForestCollider;
   if (!scene || !P || !cam || !C) { console.error('Locomotion: missing scene, #player, #camera or ForestCollider (replace forest-map.js too).'); return; }
-  const V = THREE.Vector3, vel = new V(), cw = new V(), hw = new V(), n = new V(), dd = new V(), tmp = new V();
-  let fw = false, grounded = false;
+  const V = THREE.Vector3, vel = new V(), cw = new V(), hw = new V(), hr = new V(), n = new V(), dd = new V(), tmp = new V(), acc = new V();
+  let fw = false, grounded = false, frame = 0;
   const hands = [];
 
   function jump() { if (grounded) { vel.y = scene.is('vr-mode') ? T.jumpV : T.mobileJump; grounded = false; } }
 
-  // ---- tracked virtual hands on the existing controller entities ----
+  // ---- tracked virtual hands: spheres parented to the controller entities, so they sit exactly on the controllers ----
   P.querySelectorAll('[laser-controls]').forEach(el => {
-    const h = { el, ready: false, had: false, touch: false, prev: new V(), cv: new V() };
+    const cfg = el.getAttribute('laser-controls'), h = { el, name: (cfg && cfg.hand) || '?', evt: false, had: false, touch: false, prev: new V(), cv: new V() };
     const m = document.createElement('a-sphere');
-    m.setAttribute('radius', '.075'); m.setAttribute('position', '0 0 0'); m.setAttribute('color', '#b87a3d'); m.setAttribute('material', 'flatShading:true'); m.setAttribute('visible', 'false');
+    m.setAttribute('radius', '.075'); m.setAttribute('color', '#b87a3d'); m.setAttribute('material', 'flatShading:true'); m.setAttribute('visible', 'false');
     el.appendChild(m); h.m = m;
-    el.setAttribute('raycaster', 'objects:.clickable'); // lasers only hit shop/vent buttons, not the hands
-    el.addEventListener('controllerconnected', () => { h.ready = true; m.setAttribute('visible', 'true'); });
-    el.addEventListener('controllerdisconnected', () => { h.ready = false; h.had = false; m.setAttribute('visible', 'false'); });
+    el.setAttribute('raycaster', 'objects:.clickable');
+    el.addEventListener('controllerconnected', () => { h.evt = true; });
+    el.addEventListener('controllerdisconnected', () => { h.evt = false; h.had = false; });
     ['abuttondown', 'xbuttondown'].forEach(e => el.addEventListener(e, jump));
     hands.push(h);
   });
+  // A controller counts as present if the event fired, A-Frame has bound an input source, or the pose has moved off the origin.
+  function present(h) {
+    const tc = h.el.components && h.el.components['tracked-controls'];
+    return h.evt || !!(tc && tc.controller) || h.el.object3D.position.lengthSq() > 1e-6;
+  }
 
-  // ---- mobile / desktop fallback controls ----
   const fb = document.getElementById('forward');
   if (fb) { fb.addEventListener('pointerdown', () => fw = true); ['pointerup', 'pointercancel', 'pointerleave'].forEach(e => fb.addEventListener(e, () => fw = false)); }
   const jb = document.getElementById('jump'); if (jb) jb.onclick = jump;
   addEventListener('keydown', e => { if (e.code === 'KeyW' || e.code === 'ArrowUp') fw = true; if (e.code === 'Space') jump(); });
   addEventListener('keyup', e => { if (e.code === 'KeyW' || e.code === 'ArrowUp') fw = false; });
 
+  let dbg = null;
+  if (/[?&]debug/.test(location.search)) {
+    dbg = document.createElement('a-text');
+    dbg.setAttribute('position', '0 -.3 -1'); dbg.setAttribute('width', '1.4'); dbg.setAttribute('align', 'center'); dbg.setAttribute('color', '#ffff66');
+    cam.appendChild(dbg);
+  }
+
   function floorAt(x, z, y) {
     let f = C.hillY(x, z);
     for (const q of C.plats) if (x > q.x1 && x < q.x2 && z > q.z1 && z < q.z2 && q.t <= y + .6) f = Math.max(f, q.t);
     return f;
   }
-  // deepest overlap of a sphere (w, r) with the map; writes push-out normal to o, returns depth (0 = none)
+  // deepest overlap of a sphere (w, r) with the map; writes the push-out normal to o and returns the depth (0 = none)
   function contact(w, r, o) {
     let best = 0;
     const g = C.hillY(w.x, w.z) - (w.y - r); if (g > 0) { best = g; o.set(0, 1, 0); }
@@ -61,74 +71,29 @@
     tick(time, dms) {
       const dt = Math.min(.05, (dms || 16) / 1000), p = P.object3D.position;
       if (p.y <= -20) return; // moderator vents: no physics
-      const vr = scene.is('vr-mode'); let touching = false;
+      const vr = scene.is('vr-mode'); let touching = false, cnt = 0, live = 0;
+      acc.set(0, 0, 0);
 
       if (vr) {
-        // Gorilla-style arm locomotion: clamp each hand to arm reach, sweep its
-        // path against the map, then pull the player by the hand's blocked motion.
-        cam.object3D.getWorldPosition(cw);
-        const pushes = [];
         for (const h of hands) {
-          if (!h.ready) { h.had = false; continue; }
-
-          const target = h.m.object3D;
-          target.getWorldPosition(hw);
-          const arm = hw.clone().sub(cw);
-          if (arm.length() > 1.5) hw.copy(cw).add(arm.normalize().multiplyScalar(1.5));
-
-          if (!h.had) {
-            h.prev.copy(hw); // world-space hand anchor
-            h.had = true;
-            h.touch = contact(hw, T.handR, n) > 0;
-            continue;
+          const ok = present(h); h.m.setAttribute('visible', ok ? 'true' : 'false');
+          if (!ok) { h.had = false; continue; }
+          live++;
+          h.el.object3D.getWorldPosition(hw);
+          hr.copy(hw).sub(p);
+          const hit = contact(hw, T.handR, n);
+          if (hit > 0 && h.had) {
+            dd.copy(hr).sub(h.prev).multiplyScalar(-T.handBoost);
+            const mag = dd.length(); if (mag > T.maxStep) dd.multiplyScalar(T.maxStep / mag);
+            p.add(dd); p.addScaledVector(n, Math.min(hit, T.maxPush));
+            tmp.copy(dd).divideScalar(Math.max(dt, 1 / 90)); h.cv.lerp(tmp, .5);
+            acc.add(h.cv); cnt++; touching = true;
           }
-
-          const travel = hw.clone().sub(h.prev);
-          let blocked = false;
-          let safe = h.prev.clone();
-          let hitNormal = new V();
-          // Short sphere-cast approximation prevents fast hand movement tunnelling
-          // through thin platforms or tree trunks.
-          const steps = Math.max(1, Math.min(12, Math.ceil(travel.length() / .08)));
-          for (let s = 1; s <= steps; s++) {
-            const sample = h.prev.clone().addScaledVector(travel, s / steps);
-            const depth = contact(sample, T.handR, n);
-            if (depth > 0) {
-              safe.copy(sample).addScaledVector(n, depth);
-              hitNormal.copy(n);
-              blocked = true;
-              break;
-            }
-            safe.copy(sample);
-          }
-
-          if (blocked) {
-            // A hand already planted on a surface stays anchored; the difference
-            // between its anchor and controller target moves the body, not the legs.
-            const push = h.touch ? h.prev.clone().sub(hw) : safe.clone().sub(hw);
-            if (push.lengthSq() > 0.000001) pushes.push(push);
-            h.prev.copy(safe);
-            h.cv.copy(pushes.length ? pushes[pushes.length - 1] : new V()).multiplyScalar(1 / dt);
-            h.touch = true;
-            touching = true;
-            h.m.setAttribute('color', '#ffd23f');
-          } else {
-            h.prev.copy(hw);
-            h.touch = false;
-            h.m.setAttribute('color', '#b87a3d');
-          }
+          if ((hit > 0) !== h.touch) { h.touch = hit > 0; h.m.setAttribute('color', h.touch ? '#ffd23f' : '#b87a3d'); }
+          h.prev.copy(hr); h.had = true;
         }
-
-        if (pushes.length) {
-          let bodyPush = new V();
-          for (const push of pushes) bodyPush.add(push);
-          if (pushes.length > 1) bodyPush.multiplyScalar(.5);
-          p.add(bodyPush);
-          tmp.copy(bodyPush).divideScalar(dt);
-          if (tmp.length() > T.maxSpeed) tmp.setLength(T.maxSpeed);
-          vel.copy(tmp);
-        }
-      }
+        if (cnt) vel.copy(acc).divideScalar(cnt);
+      } else for (const h of hands) h.had = false;
 
       cam.object3D.getWorldPosition(cw);
       let climbing = false;
@@ -141,7 +106,6 @@
         p.addScaledVector(vel, dt);
       } else { const sp = vel.length(); if (sp > T.maxSpeed) vel.multiplyScalar(T.maxSpeed / sp); }
 
-      // body collisions: tree trunks, platform sides, floor
       cam.object3D.getWorldPosition(cw);
       for (const t of C.climbs) {
         const dx = cw.x - t.x, dz = cw.z - t.z, d = Math.hypot(dx, dz);
@@ -149,9 +113,7 @@
       }
       for (const q of C.plats) {
         const b = q.b || 0, r = T.bodyR;
-        // Short body collision only: this is a legless, arm-driven player,
-        // not a full-height humanoid capsule.
-        if (p.y >= q.t - .25 || p.y + .65 < b) continue;
+        if (p.y >= q.t - .25 || p.y + 1.8 < b) continue;
         if (cw.x > q.x1 - r && cw.x < q.x2 + r && cw.z > q.z1 - r && cw.z < q.z2 + r) {
           const a = [cw.x - (q.x1 - r), q.x2 + r - cw.x, cw.z - (q.z1 - r), q.z2 + r - cw.z]; let i = 0;
           for (let k = 1; k < 4; k++) if (a[k] < a[i]) i = k;
@@ -165,6 +127,9 @@
       if (p.y < fl) { p.y = fl; if (vel.y < 0) vel.y = 0; grounded = true; }
       if (grounded && !touching) { vel.x *= .85; vel.z *= .85; }
       const d = Math.hypot(cw.x, cw.z); if (d > T.bounds) { const k = (d - T.bounds) / d; p.x -= cw.x * k; p.z -= cw.z * k; vel.x = vel.z = 0; }
+
+      if (dbg && (++frame % 10 === 0)) dbg.setAttribute('value', (vr ? 'VR' : 'flat') + ' hands:' + live + '/' + hands.length + '\n' +
+        hands.map(h => h.name[0].toUpperCase() + (present(h) ? (h.touch ? ' TOUCH' : ' ok') : ' --')).join('  ') + '\nspeed ' + vel.length().toFixed(1) + ' y ' + p.y.toFixed(2));
     }
   });
   scene.setAttribute('chimps-locomotion', '');
