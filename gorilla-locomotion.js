@@ -82,18 +82,29 @@
           const ok = present(h); h.m.setAttribute('visible', ok ? 'true' : 'false');
           if (!ok) { h.had = false; continue; }
           live++;
-          h.el.object3D.getWorldPosition(hw);
-          hr.copy(hw).sub(p);
+          // tracked-controls is parented directly to the player rig. Use its local
+          // controller pose for hand motion, so moving the rig does not cancel the push.
+          hr.copy(h.el.object3D.position);
+          hw.copy(hr).add(p);
           const hit = contact(hw, T.handR, n);
           if (hit > 0 && h.had) {
+            // Gorilla Tag arm push: when a planted hand moves backward, the body
+            // moves forward by the same amount (with a small stability clamp).
             dd.copy(hr).sub(h.prev).multiplyScalar(-T.handBoost);
-            const mag = dd.length(); if (mag > T.maxStep) dd.multiplyScalar(T.maxStep / mag);
-            p.add(dd); p.addScaledVector(n, Math.min(hit, T.maxPush));
-            tmp.copy(dd).divideScalar(Math.max(dt, 1 / 90)); h.cv.lerp(tmp, .5);
+            const mag = dd.length();
+            if (mag > T.maxStep) dd.multiplyScalar(T.maxStep / mag);
+            p.add(dd);
+            p.addScaledVector(n, Math.min(hit, T.maxPush));
+            tmp.copy(dd).divideScalar(Math.max(dt, 1 / 90));
+            h.cv.lerp(tmp, .5);
             acc.add(h.cv); cnt++; touching = true;
           }
-          if ((hit > 0) !== h.touch) { h.touch = hit > 0; h.m.setAttribute('color', h.touch ? '#ffd23f' : '#b87a3d'); }
-          h.prev.copy(hr); h.had = true;
+          if ((hit > 0) !== h.touch) {
+            h.touch = hit > 0;
+            h.m.setAttribute('color', h.touch ? '#ffd23f' : '#b87a3d');
+          }
+          h.prev.copy(hr);
+          h.had = true;
         }
         if (cnt) vel.copy(acc).divideScalar(cnt);
       } else for (const h of hands) h.had = false;
