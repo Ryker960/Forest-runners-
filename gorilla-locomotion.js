@@ -25,13 +25,18 @@
     ['abuttondown', 'xbuttondown'].forEach(e => el.addEventListener(e, jump));
     hands.push(h);
   });
-  // A controller counts as present if the event fired, A-Frame has bound an input source, or the pose has moved off the origin.
+  // Quest/A-Frame versions do not all expose the controller on the same
+  // component field. In an active immersive session, keep both hand entities
+  // enabled and let their tracked-controls poses determine actual contact.
   function present(h) {
     const tc = h.el.components && h.el.components['tracked-controls'];
     const xr = scene.renderer && scene.renderer.xr;
-    const session = xr && xr.isPresenting && xr.getSession ? xr.getSession() : null;
-    const source = !!(session && Array.from(session.inputSources || []).some(s => s.handedness === h.name));
-    return h.evt || source || !!(tc && tc.controller) || h.el.object3D.position.lengthSq() > 1e-6;
+    let session = null;
+    try { if (xr && xr.getSession) session = xr.getSession(); } catch (e) {}
+    const sources = session ? Array.from(session.inputSources || []) : [];
+    const source = sources.some(s => s.handedness === h.name);
+    const pose = h.el.object3D.position.lengthSq() > 1e-6;
+    return h.evt || source || !!(tc && (tc.controller || tc.controllerPresent)) || pose || scene.is('vr-mode');
   }
 
   const fb = document.getElementById('forward');
