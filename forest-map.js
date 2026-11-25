@@ -65,7 +65,7 @@
   box(12, .75, -12.8, 3.2, 1.1, .8, '#9b6335');
   // Empty cosmetic display plinths.
   [[9.8,-10.5],[12,-10.5],[14.2,-10.5]].forEach(([x,z]) => {
-    box(x, .75, z, 1.1, .7, 1.1, '#c58b4e');
+    box(x, .75, z, 1.1, .7, 1.1, '#c58b4e', false);
     mk('a-box', { position: `${x} 1.2 ${z}`, width: .75, height: .12, depth: .75, color: '#e0bd7d', material: FS });
   });
   mk('a-text', { value: 'SHOP', position: '12 4.7 -7.55', align: 'center', color: '#fff4c8', width: 7, scale: '1.4 1.4 1.4' });
