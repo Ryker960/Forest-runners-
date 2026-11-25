@@ -135,6 +135,9 @@
       }
       for (const q of C.plats) {
         const b = q.b || 0, r = T.bodyR;
+        // Thin floor/platform slabs are surfaces, not full-height body barriers.
+        // Only solid objects with meaningful vertical sides should push the player sideways.
+        if ((q.t - b) < .8) continue;
         if (p.y >= q.t - .25 || p.y + 1.8 < b) continue;
         if (cw.x > q.x1 - r && cw.x < q.x2 + r && cw.z > q.z1 - r && cw.z < q.z2 + r) {
           const a = [cw.x - (q.x1 - r), q.x2 + r - cw.x, cw.z - (q.z1 - r), q.z2 + r - cw.z]; let i = 0;
