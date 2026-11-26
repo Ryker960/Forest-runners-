@@ -62,8 +62,16 @@
     let best = 0;
     const g = C.hillY(w.x, w.z) - (w.y - r); if (g > 0) { best = g; o.set(0, 1, 0); }
     for (const q of C.plats) {
-      const b = q.b || 0;
-      if (w.x < q.x1 - r || w.x > q.x2 + r || w.z < q.z1 - r || w.z > q.z2 + r || w.y < b - r || w.y > q.t + r) continue;
+      if (w.x < q.x1 - r || w.x > q.x2 + r || w.z < q.z1 - r || w.z > q.z2 + r) continue;
+      // Entries without an explicit bottom are top-only platforms, not solid
+      // boxes extending from the ground to the platform top.
+      if (q.b == null) {
+        const depth = q.t + r - w.y;
+        if (w.y >= q.t - r && depth > best) { best = depth; o.set(0, 1, 0); }
+        continue;
+      }
+      const b = q.b;
+      if (w.y < b - r || w.y > q.t + r) continue;
       const c = [[q.t + r - w.y, 0, 1, 0], [w.y - (b - r), 0, -1, 0], [w.x - (q.x1 - r), -1, 0, 0], [q.x2 + r - w.x, 1, 0, 0], [w.z - (q.z1 - r), 0, 0, -1], [q.z2 + r - w.z, 0, 0, 1]];
       let m = c[0]; for (const k of c) if (k[0] < m[0]) m = k;
       if (m[0] > best) { best = m[0]; o.set(m[1], m[2], m[3]); }
@@ -134,9 +142,11 @@
         if (p.y < t.h && d < t.r + T.bodyR) { const k = (t.r + T.bodyR - d) / (d || 1); p.x += dx * k; p.z += dz * k; }
       }
       for (const q of C.plats) {
-        const b = q.b || 0, r = T.bodyR;
-        // Thin floor/platform slabs are surfaces, not full-height body barriers.
-        // Only solid objects with meaningful vertical sides should push the player sideways.
+        const r = T.bodyR;
+        // Top-only platform records must never become invisible body walls.
+        // Side collision is reserved for boxes with an explicit bottom height.
+        if (q.b == null) continue;
+        const b = q.b;
         if ((q.t - b) < .8) continue;
         if (p.y >= q.t - .25 || p.y + 1.8 < b) continue;
         if (cw.x > q.x1 - r && cw.x < q.x2 + r && cw.z > q.z1 - r && cw.z < q.z2 + r) {
