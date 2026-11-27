@@ -122,7 +122,8 @@
     mk('a-box', { position: `${x} ${wallH + capH / 2} ${z}`, width: w + .25, height: capH, depth: d + .25,
       color: '#a9c6c9', material: 'metalness:.72;roughness:.06' });
     const x1 = x - w / 2 - .13, x2 = x + w / 2 + .13, z1 = z - d / 2 - .13, z2 = z + d / 2 + .13;
-    plats.push({ x1, x2, z1, z2, t: wallH + capH, b: wallH });
+    // box() above already registered the full wall collision from ground level.
+    // Do not add a second raised collision volume starting at wallY.
     slippery.push({ x1, x2, z1, z2, y: wallH + capH });
   }
   perimeterWall(-wallEdge, 0, wallThick, wallLen);
