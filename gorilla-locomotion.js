@@ -148,7 +148,7 @@
         if (q.b == null) continue;
         const b = q.b;
         if ((q.t - b) < .8) continue;
-        if (p.y >= q.t - .25 || p.y + 1.8 < b) continue;
+        if (p.y >= q.t - .25 || p.y + 1.05 < b) continue;
         if (cw.x > q.x1 - r && cw.x < q.x2 + r && cw.z > q.z1 - r && cw.z < q.z2 + r) {
           const a = [cw.x - (q.x1 - r), q.x2 + r - cw.x, cw.z - (q.z1 - r), q.z2 + r - cw.z]; let i = 0;
           for (let k = 1; k < 4; k++) if (a[k] < a[i]) i = k;
