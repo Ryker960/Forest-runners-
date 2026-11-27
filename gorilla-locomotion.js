@@ -3,7 +3,7 @@
    A hand touching ground / platform / trunk stays planted; moving the controller pulls the body the other way.
    Releasing keeps momentum. A / X = jump. Add ?debug to the address to see a live readout in VR. */
 (function () {
-  const T = { grav: 9.8, drag: .25, maxSpeed: 9, jumpV: 5.5, mobileJump: 6.2, handR: .16, handReach: 1.25, handBoost: 1, maxStep: .5, maxPush: .15, climbSpeed: 3, bodyR: .18, bounds: 56 };
+  const T = { grav: 9.8, drag: .25, maxSpeed: 9, jumpV: 5.5, mobileJump: 6.2, handR: .16, handReach: 1.25, collisionYOffset: .35, handBoost: 1, maxStep: .5, maxPush: .15, climbSpeed: 3, bodyR: .18, bounds: 56 };
 
   const scene = document.querySelector('a-scene'), P = document.getElementById('player'), cam = document.getElementById('camera'), C = window.ForestCollider;
   if (!scene || !P || !cam || !C) { console.error('Locomotion: missing scene, #player, #camera or ForestCollider (replace forest-map.js too).'); return; }
@@ -54,7 +54,7 @@
 
   function floorAt(x, z, y) {
     let f = C.hillY(x, z);
-    for (const q of C.plats) if (x > q.x1 && x < q.x2 && z > q.z1 && z < q.z2 && q.t <= y + .6) f = Math.max(f, q.t);
+    for (const q of C.plats) if (x > q.x1 && x < q.x2 && z > q.z1 && z < q.z2 && (q.t - T.collisionYOffset) <= y + .6) f = Math.max(f, q.t - T.collisionYOffset);
     return f;
   }
   // deepest overlap of a sphere (w, r) with the map; writes the push-out normal to o and returns the depth (0 = none)
@@ -66,19 +66,20 @@
       // Entries without an explicit bottom are top-only platforms, not solid
       // boxes extending from the ground to the platform top.
       if (q.b == null) {
-        const depth = q.t + r - w.y;
-        if (w.y >= q.t - r && depth > best) { best = depth; o.set(0, 1, 0); }
+        const top = q.t - T.collisionYOffset;
+        const depth = top + r - w.y;
+        if (w.y >= top - r && depth > best) { best = depth; o.set(0, 1, 0); }
         continue;
       }
-      const b = q.b;
-      if (w.y < b - r || w.y > q.t + r) continue;
-      const c = [[q.t + r - w.y, 0, 1, 0], [w.y - (b - r), 0, -1, 0], [w.x - (q.x1 - r), -1, 0, 0], [q.x2 + r - w.x, 1, 0, 0], [w.z - (q.z1 - r), 0, 0, -1], [q.z2 + r - w.z, 0, 0, 1]];
+      const b = q.b - T.collisionYOffset, top = q.t - T.collisionYOffset;
+      if (w.y < b - r || w.y > top + r) continue;
+      const c = [[top + r - w.y, 0, 1, 0], [w.y - (b - r), 0, -1, 0], [w.x - (q.x1 - r), -1, 0, 0], [q.x2 + r - w.x, 1, 0, 0], [w.z - (q.z1 - r), 0, 0, -1], [q.z2 + r - w.z, 0, 0, 1]];
       let m = c[0]; for (const k of c) if (k[0] < m[0]) m = k;
       if (m[0] > best) { best = m[0]; o.set(m[1], m[2], m[3]); }
     }
     for (const t of C.climbs) {
       const dx = w.x - t.x, dz = w.z - t.z, d = Math.hypot(dx, dz);
-      if (w.y < t.h && d < t.r + r) { const p = t.r + r - d; if (p > best) { best = p; o.set(dx / (d || 1), 0, dz / (d || 1)); } }
+      if (w.y < t.h - T.collisionYOffset && d < t.r + r) { const p = t.r + r - d; if (p > best) { best = p; o.set(dx / (d || 1), 0, dz / (d || 1)); } }
     }
     return best;
   }
@@ -146,9 +147,9 @@
         // Top-only platform records must never become invisible body walls.
         // Side collision is reserved for boxes with an explicit bottom height.
         if (q.b == null) continue;
-        const b = q.b;
-        if ((q.t - b) < .8) continue;
-        if (p.y >= q.t - .25 || p.y + 1.05 < b) continue;
+        const b = q.b - T.collisionYOffset, top = q.t - T.collisionYOffset;
+        if ((top - b) < .8) continue;
+        if (p.y >= top - .25 || p.y + 1.05 < b) continue;
         if (cw.x > q.x1 - r && cw.x < q.x2 + r && cw.z > q.z1 - r && cw.z < q.z2 + r) {
           const a = [cw.x - (q.x1 - r), q.x2 + r - cw.x, cw.z - (q.z1 - r), q.z2 + r - cw.z]; let i = 0;
           for (let k = 1; k < 4; k++) if (a[k] < a[i]) i = k;
