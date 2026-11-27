@@ -11,6 +11,32 @@
   let fw = false, grounded = false, frame = 0;
   const hands = [];
 
+  // Temporary visualizer: open the game with ?colliders to see the exact
+  // collision volumes used by hand/body physics. Red = solid box, yellow = top-only.
+  if (/[?&]colliders(?:&|$)/.test(location.search)) {
+    const root = new THREE.Group();
+    root.name = 'temporary-collision-debug';
+    scene.object3D.add(root);
+    const red = new THREE.MeshBasicMaterial({ color: 0xff3030, wireframe: true, depthTest: false, transparent: true, opacity: .9 });
+    const yellow = new THREE.MeshBasicMaterial({ color: 0xffdf30, wireframe: true, depthTest: false, transparent: true, opacity: .95 });
+    for (const q of C.plats) {
+      const top = q.t - T.collisionYOffset;
+      const bottom = q.b == null ? top - .035 : q.b - T.collisionYOffset;
+      const h = Math.max(.035, top - bottom);
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(q.x2 - q.x1, h, q.z2 - q.z1), q.b == null ? yellow : red);
+      mesh.position.set((q.x1 + q.x2) / 2, (top + bottom) / 2, (q.z1 + q.z2) / 2);
+      mesh.renderOrder = 999;
+      root.add(mesh);
+    }
+    for (const t of C.climbs) {
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(t.r, t.r, t.h - T.collisionYOffset, 12, 1, true), yellow);
+      mesh.position.set(t.x, (t.h - T.collisionYOffset) / 2, t.z);
+      mesh.renderOrder = 999;
+      root.add(mesh);
+    }
+    console.info('CHIMPS RUNNERS: collision outlines enabled (red=solid boxes, yellow=top-only/climb).');
+  }
+
   function jump() { if (grounded) { vel.y = scene.is('vr-mode') ? T.jumpV : T.mobileJump; grounded = false; } }
 
   // ---- tracked virtual hands: spheres parented to the controller entities, so they sit exactly on the controllers ----
